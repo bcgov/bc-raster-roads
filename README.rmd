@@ -1,20 +1,38 @@
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-<a rel="Exploration" href="https://github.com/BCDevExchange/docs/blob/master/discussion/projectstates.md"><img alt="Being designed and built, but in the lab. May change, disappear, or be buggy." style="border-width:0" src="https://assets.bcdevexchange.org/images/badges/exploration.svg" title="Being designed and built, but in the lab. May change, disappear, or be buggy." /></a>
+---
+output:
+  md_document:
+    variant: markdown_github
+---
 
-Road Analysis for B.C.
-======================
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "README-"
+)
+```
+
+```{r, echo=FALSE, results='asis'}
+bcgovr::devex_badge("Exploration")
+```
+
+# Road Analysis for B.C.
 
 ### Usage
 
+
 There are four core scripts that are required for the analysis, they need to be run in order:
 
--   01\_clean.R
--   02\_analysis.R
--   03\_visualize.R
--   04\_output.R
+- 01_clean.R
+- 02_analysis.R
+- 03_visualize.R
+- 04_output.R
+
+
 
 ### Project Status
-
 This project is under active development.
 
 ### Getting Help or Reporting an Issue
@@ -42,5 +60,5 @@ Please note that this project is released with a [Contributor Code of Conduct](C
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
-
-This repository is maintained by [ENVEcosystems](https://github.com/orgs/bcgov/teams/envecosystems/members).
+    
+This repository is maintained by [ENVEcosystems](https://github.com/orgs/bcgov/teams/envecosystems/members).    
