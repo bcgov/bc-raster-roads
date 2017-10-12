@@ -15,48 +15,117 @@ require(raster)
 require(rgdal)
 require(spatstat)
 require(maptools)
+require(rgeos)
+require(RColorBrewer)
+require(dplyr)
+
 dir.create("tmp", showWarnings = FALSE)
 
-#Calculate time for routine to run
-ptm <- proc.time()
 roadsIN<-IntRds
 #Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
-ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=173787.5,ymx=1748187.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0")
+ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=173787.5,ymx=1748187.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+                 ,res=c(100,100),vals=0)
+#ProvRast <- raster(extent(roadsIN), crs=projection(roadsIN),res=c(100,100),vals=0)
 
-# Convert to a line segment pattern object using maptools
-roadsPSP <- as.psp(as(roadsIN, 'SpatialLines')) #approx 3 mins with Morice
-proc.time() - ptm
+#---------------------
+#split Province into tiles for processing
+#identify the extents for each tile and use to clip for processing
 
-#Calculate time for routine to run
-ptm <- proc.time()
+#extents of input layer
+ProvBB<-bbox(ProvRast)
 
-#use map extents to set dimensions for the pixellate used to calculate lengths per cell
-#e <- extent( roadsIN )#used with the smaller test data
-e <- extent( ProvRast )
-RdExt<-c((e[4]-e[3]-1),(e[2]-e[1]-1))/100 #should result in 1 ha 100x100 cells based on ProvRast
-roadLengthIM <- pixellate.psp(roadsIN, dimyx=RdExt)
+#Number of tile rows, number of columns will be the same
+nTileRows<-10
 
-# Convert pixel image to a raster with km roads in each cell
-roadlength<-raster(roadLengthIM/1000)
-prod(roadlength)
-#check output if resolution is not exactly 100 then need to re set resolution
-#Set raster to have 1ha cells so maps onto Provincial raster (hectares BC format)
-#roadlengthP<-resample(rdLeng,ProvRast,method='bilinear')
-proc.time() - ptm #1,802,111 cells took 122 seconds, 271,048,704 for the province ?
+#Determine the seed extents for generating the tile extents
+x <- seq(1:nTileRows)
+Tseed <- data.frame(x)
+xFactor <- (ProvBB[3] - ProvBB[1])/length(x)
+yFactor <- (ProvBB[4] - ProvBB[2])/length(x)
+Tseed$xCH <- Tseed$x*xFactor + ProvBB[1]
+Tseed$yCH <- Tseed$x*yFactor + ProvBB[2]
 
-#write out road length raster as a geotif
-rf <- writeRaster(roadlength, filename="rdLength.tif", format="GTiff", overwrite=TRUE)
-#rdLeng<-raster("rdLength.tif")
-
-#Some code snipets if need to break Province into tiles for processing
-library(SpaDES) #for splitting up large rasters
-
-#split raster into smaller chunks for processing
-rTiles=splitRaster(ProvRaster, nx=10, ny=10, path=DataDir)#100 tiles
-
-#Loop through each tile and calclate lenght of road in each cell
+#generate data.frame of tile extents based on bounding box
+Tdf <- data.frame(xmin=double(),xmax=double(),ymin=double(),ymax=double()) 
 i<-1
-rs<-rTiles[[i]]
+for (i in 1:nTileRows) {
+  for (j in 1:nTileRows) {
+    Tdfn<-data.frame(xmin=Tseed$xCH[i]-xFactor,xmax=Tseed$xCH[i],ymin=Tseed$yCH[j]-yFactor,ymax=Tseed$yCH[j])
+    Tdf<-rbind(Tdf, Tdfn)
+    # rbind(df, setNames(de, names(df)))
+  }
+}
 
-rs[] <- 1:ncell(rs)
-.....
+#Plot Province bbox to check
+ProvPlt <- as(raster::extent(ProvBB), "SpatialPolygons")
+proj4string(ProvPlt) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+plot(ProvPlt)
+
+#Add each tile as a check
+i<-1
+for (i in 1:(nTileRows*nTileRows)) {
+  Pc<-as.vector(as.matrix(Tdf[i,]))
+  Pcc<-raster::extent(Pc)
+  e <- as(Pcc, "SpatialPolygons")
+  proj4string(e) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+  lines(e)
+}
+lines(ProvPlt,col='red')
+
+#Loop through each tile and generate road density raster
+#Function that takes a shape file and bounding box and generates a clipped shape file
+gClip <- function(shp, bb){
+  if(class(bb) == "matrix") 
+    b_poly <- as(extent(as.vector(t(bb))), "SpatialPolygons")
+  else 
+    b_poly <- as(extent(bb), "SpatialPolygons")
+  proj4string(b_poly) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+  gIntersection(shp, b_poly, byid = T, drop_lower_td=TRUE)#last parameter to fix gIntersect error
+}
+
+#Loop through each tile and calculate road density for each 1ha cell
+ptm <- proc.time()
+i<-1
+for (i in 1:(nTileRows*nTileRows)) {
+  Pc<-as.vector(as.matrix(Tdf[i,]))
+  Pcc<-raster::extent(Pc)
+  TilePoly <- gClip(roadsIN, Pcc)
+  DefaultRaster<-raster(Pcc, crs=projection(roadsIN), res=c(100,100),vals=0,ext=Pcc)
+  
+  if(length(TilePoly)>0) {
+    roadlengthT1 <- as.psp(as(TilePoly, 'SpatialLines')) %>%
+      pixellate.psp(eps=100)
+    
+    roadlengthT2<-raster(roadlengthT1,crs=projection(roadsIN))
+    roadlengthT3 <- extend(roadlengthT2, Pcc, value=0)
+    roadlengthT <- resample(roadlengthT3,DefaultRaster,method='ngb')
+  } else {  
+    roadlengthT<-DefaultRaster
+  }
+  writeRaster(roadlengthT, filename=paste(tileOutDir,"rdTile_",i,".tif",sep=''), format="GTiff", overwrite=TRUE)
+  print(paste(tileOutDir,"rdTile_",i,".tif",sep=''))
+  gc()
+}
+
+#Memory functions - object.size(roadsIN), gc(), rm()
+
+#code to read rasters from a directory and mosaic - faster than merge or mosaic
+library(gdalUtils)
+#Build list of all raster files you want to join (in your current working directory).
+Tiles<- list.files(path=paste(tileOutDir,sep=''), pattern='rdTile_')
+
+#Make a template raster file to build onto
+template<-ProvRast
+writeRaster(template, file=paste(tileOutDir,"RoadDensR.tif",sep=''), format="GTiff",overwrite=TRUE)
+#Merge all raster tiles into one big raster.
+RoadDensR<-mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
+                          dst_dataset=paste(tileOutDir,"RoadDensR.tif",sep=''),
+                          of="GTiff",
+                          output_Raster=TRUE,
+                          output.vrt=TRUE)
+gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
+#Plot to test
+plot(RoadDensR)
+#lines(roadsIN,col='red')
+proc.time() - ptm 
+

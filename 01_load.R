@@ -11,29 +11,24 @@
 # See the License for the specific language governing permissions and limitations under the License.
 require(rgdal)
 
-#Set enviornment variables and create directories
-RepoName<-'bc_road_analysis'
-
-#fileDir<-paste('/Users/Morgan/Dropbox/_dev/',RepoName,'/',sep='')
-fileDir<-paste('/Users/donmorgan/Dropbox (BVRC)/_dev/',RepoName,'/',sep='')
-OutDir<-paste(fileDir,'out/',sep='')
+OutDir<-('out/')
 figsOutDir<-paste(OutDir,'figures/',sep='')
 dataOutDir<-paste(OutDir,'data/',sep='')
+tileOutDir<-paste(dataOutDir,'tile/',sep='')
 dir.create(file.path(OutDir), showWarnings = FALSE)
 dir.create(file.path(figsOutDir), showWarnings = FALSE)
 dir.create(file.path(dataOutDir), showWarnings = FALSE)
-DataDir <- paste(fileDir,"data/",sep='')
-setwd(OutDir)
-
+dir.create(file.path(tileOutDir), showWarnings = FALSE)
+DataDir <- ("data/")
 
 #Consolidated roads will be downloadable from some CE maintained location data
-ConRdsFile<-'BC_CE_IntegratedRoads_2017_v1_20170114_no_TRIM'
+ConRdsFile<-'2017'
 ConRds_zip <- paste(DataDir,ConRdsFile,".zip",sep='')
 
 unzip(ConRds_zip, exdir = DataDir, overwrite = TRUE)
 
 #zipped and zip files may not have the same name - search directory for gdb
-Rd_gdb<-paste(DataDir,(list.files(path=paste(DataDir,sep=''), pattern='gdb')[1]),sep='')
+Rd_gdb<-paste(DataDir,ConRdsFile,'/',(list.files(path=paste(DataDir,ConRdsFile,'/',sep=''), pattern='gdb')[1]),sep='')
 
 # List feature classes in the geodatabase
 fc_list <- ogrListLayers(Rd_gdb)
