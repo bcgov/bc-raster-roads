@@ -9,6 +9,9 @@
 # Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
+#
+#Stack Overflow code snipet use is licensed under the open source licence: : https://opensource.org/licenses/MIT
+#Other code snipets have published reference
 
 require(sp)
 require(raster)
@@ -38,6 +41,8 @@ ProvBB<-bbox(ProvRast)
 nTileRows<-10
 
 #Determine the seed extents for generating the tile extents
+#Code modified from https://stackoverflow.com/questions/38851909/divide-bounding-box-extent-into-several-parts-in-r
+
 x <- seq(1:nTileRows)
 Tseed <- data.frame(x)
 xFactor <- (ProvBB[3] - ProvBB[1])/length(x)
@@ -74,6 +79,8 @@ lines(ProvPlt,col='red')
 
 #Loop through each tile and generate road density raster
 #Function that takes a shape file and bounding box and generates a clipped shape file
+#code snippet based on: https://www.rdocumentation.org/packages/stplanr/versions/0.1.9
+
 gClip <- function(shp, bb){
   if(class(bb) == "matrix") 
     b_poly <- as(extent(as.vector(t(bb))), "SpatialPolygons")
@@ -92,6 +99,8 @@ for (i in 1:(nTileRows*nTileRows)) {
   TilePoly <- gClip(roadsIN, Pcc)
   DefaultRaster<-raster(Pcc, crs=projection(roadsIN), res=c(100,100),vals=0,ext=Pcc)
   
+#Code snippet for using spatstat package approach to calculating 1ha raster cell road density
+#originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html  
   if(length(TilePoly)>0) {
     roadlengthT1 <- as.psp(as(TilePoly, 'SpatialLines')) %>%
       pixellate.psp(eps=100)
@@ -110,6 +119,8 @@ for (i in 1:(nTileRows*nTileRows)) {
 #Memory functions - object.size(roadsIN), gc(), rm()
 
 #code to read rasters from a directory and mosaic - faster than merge or mosaic
+#Code snipet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
+
 library(gdalUtils)
 #Build list of all raster files you want to join (in your current working directory).
 Tiles<- list.files(path=paste(tileOutDir,sep=''), pattern='rdTile_')

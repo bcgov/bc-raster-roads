@@ -34,7 +34,7 @@ Rd_gdb<-paste(DataDir,ConRdsFile,'/',(list.files(path=paste(DataDir,ConRdsFile,'
 fc_list <- ogrListLayers(Rd_gdb)
 print(fc_list)
 
-# Read integrated roads feature class-usually the first record in list
+# Read integrated roads feature class-usually the first record in list, but can check
 IntRds <- readOGR(dsn=Rd_gdb,layer=fc_list[1])
 
 #set projection to BC Albers
