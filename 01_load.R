@@ -10,6 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 require(rgdal)
+library(sf)
 
 OutDir<-('out/')
 figsOutDir<-paste(OutDir,'figures/',sep='')
@@ -19,28 +20,34 @@ dir.create(file.path(OutDir), showWarnings = FALSE)
 dir.create(file.path(figsOutDir), showWarnings = FALSE)
 dir.create(file.path(dataOutDir), showWarnings = FALSE)
 dir.create(file.path(tileOutDir), showWarnings = FALSE)
-DataDir <- ("data/")
+DataDir <- "data"
+dir.create(DataDir, showWarnings = FALSE)
 
-#Consolidated roads will be downloadable from some CE maintained location data
-ConRdsFile<-'2017'
-ConRds_zip <- paste(DataDir,ConRdsFile,".zip",sep='')
-
-unzip(ConRds_zip, exdir = DataDir, overwrite = TRUE)
-
-#zipped and zip files may not have the same name - search directory for gdb
-Rd_gdb<-paste(DataDir,ConRdsFile,'/',(list.files(path=paste(DataDir,ConRdsFile,'/',sep=''), pattern='gdb')[1]),sep='')
+## DRA from BCDC: 
+## https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-master-partially-attributed-roads/resource/a06a2e11-a0b1-41d4-b857-cb2770e34fb0
+# download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip", 
+#               destfile = file.path(DataDir, "dra.gdb.zip"))
+# unzip(file.path(DataDir, "dra.gdb.zip"), exdir = file.path(DataDir, "DRA"))
 
 # List feature classes in the geodatabase
+Rd_gdb <- list.files(file.path(DataDir, "DRA"), pattern = ".gdb", full.names = TRUE)[1]
 fc_list <- ogrListLayers(Rd_gdb)
 print(fc_list)
 
-# Read integrated roads feature class-usually the first record in list, but can check
-IntRds <- readOGR(dsn=Rd_gdb,layer=fc_list[1])
+# Read TRANSPORT_LINE layer which has the acutal lines
+IntRds <- readOGR(dsn = Rd_gdb, layer = "TRANSPORT_LINE")
 
-#set projection to BC Albers
-crs(IntRds) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+# Also read as sf
+roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE")
+
+# Write metadata from gdb to csv files
+lapply(fc_list[grepl("CODE$", fc_list)], function(l) {
+  system(paste0("ogr2ogr -f CSV data/", l, ".csv ", Rd_gdb, " ", l))
+})
 
 # Determine the FC extent, projection, and attribute information
 summary(IntRds)
 
-
+dir.create("tmp")
+saveRDS(IntRds, file = "tmp/IntRds.rds")
+saveRDS(roads_sf, file = "tmp/DRA_roads_sf.rds")
