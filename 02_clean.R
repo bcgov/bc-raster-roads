@@ -22,12 +22,12 @@ require(rgeos)
 require(RColorBrewer)
 require(dplyr)
 
-dir.create("tmp", showWarnings = FALSE)
+IntRds <- readRDS("tmp/IntRds.rds")
 
 roadsIN<-IntRds
 #Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
 ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=173787.5,ymx=1748187.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-                 ,res=c(100,100),vals=0)
+                 ,resolution=c(100,100),vals=0)
 #ProvRast <- raster(extent(roadsIN), crs=projection(roadsIN),res=c(100,100),vals=0)
 
 #---------------------
@@ -97,7 +97,7 @@ for (i in 1:(nTileRows*nTileRows)) {
   Pc<-as.vector(as.matrix(Tdf[i,]))
   Pcc<-raster::extent(Pc)
   TilePoly <- gClip(roadsIN, Pcc)
-  DefaultRaster<-raster(Pcc, crs=projection(roadsIN), res=c(100,100),vals=0,ext=Pcc)
+  DefaultRaster<-raster(Pcc, crs=projection(roadsIN), resolution=c(100,100),vals=0,ext=Pcc)
   
 #Code snippet for using spatstat package approach to calculating 1ha raster cell road density
 #originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html  
