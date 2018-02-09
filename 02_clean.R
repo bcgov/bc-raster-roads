@@ -13,21 +13,25 @@
 #Stack Overflow code snipet use is licensed under the open source licence: : https://opensource.org/licenses/MIT
 #Other code snipets have published reference
 
-require(sp)
+# require(sp)
 require(raster)
-require(rgdal)
+# require(rgdal)
 require(spatstat)
-require(maptools)
-require(rgeos)
+# require(maptools)
+# require(rgeos)
 require(RColorBrewer)
 require(dplyr)
+require(sf)
 
-IntRds <- readRDS("tmp/IntRds.rds")
+# IntRds <- readRDS("tmp/IntRds.rds")
+roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
 
-roadsIN<-IntRds
-#Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
-ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=173787.5,ymx=1748187.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-                 ,resolution=c(100,100),vals=0)
+# roadsIN <- IntRds
+# Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0
+)
 #ProvRast <- raster(extent(roadsIN), crs=projection(roadsIN),res=c(100,100),vals=0)
 
 #---------------------
@@ -35,47 +39,52 @@ ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=1737
 #identify the extents for each tile and use to clip for processing
 
 #extents of input layer
-ProvBB<-bbox(ProvRast)
+ProvBB <- bbox(ProvRast)
 
 #Number of tile rows, number of columns will be the same
-nTileRows<-10
+nTileRows <- 10
 
 #Determine the seed extents for generating the tile extents
 #Code modified from https://stackoverflow.com/questions/38851909/divide-bounding-box-extent-into-several-parts-in-r
 
-x <- seq(1:nTileRows)
-Tseed <- data.frame(x)
-xFactor <- (ProvBB[3] - ProvBB[1])/length(x)
-yFactor <- (ProvBB[4] - ProvBB[2])/length(x)
+Tseed <- data.frame(x = seq(1:nTileRows))
+xFactor <- (ProvBB[3] - ProvBB[1])/nTileRows
+yFactor <- (ProvBB[4] - ProvBB[2])/nTileRows
 Tseed$xCH <- Tseed$x*xFactor + ProvBB[1]
 Tseed$yCH <- Tseed$x*yFactor + ProvBB[2]
 
 #generate data.frame of tile extents based on bounding box
-Tdf <- data.frame(xmin=double(),xmax=double(),ymin=double(),ymax=double()) 
-i<-1
+Tdf <- data.frame(xmin = double(), xmax = double(), ymin = double(), ymax = double())
+i <- 1
 for (i in 1:nTileRows) {
   for (j in 1:nTileRows) {
-    Tdfn<-data.frame(xmin=Tseed$xCH[i]-xFactor,xmax=Tseed$xCH[i],ymin=Tseed$yCH[j]-yFactor,ymax=Tseed$yCH[j])
-    Tdf<-rbind(Tdf, Tdfn)
+    Tdfn <- data.frame(xmin = Tseed$xCH[i] - xFactor, xmax = Tseed$xCH[i], 
+                       ymin = Tseed$yCH[j] - yFactor, ymax = Tseed$yCH[j])
+    Tdf <- rbind(Tdf, Tdfn)
     # rbind(df, setNames(de, names(df)))
   }
 }
 
 #Plot Province bbox to check
-ProvPlt <- as(raster::extent(ProvBB), "SpatialPolygons")
-proj4string(ProvPlt) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+ProvPlt <- st_as_sfc(as(raster::extent(ProvRast), "SpatialLines"), crs = 3005)
 plot(ProvPlt)
 
 #Add each tile as a check
-i<-1
+i <- 1
 for (i in 1:(nTileRows*nTileRows)) {
-  Pc<-as.vector(as.matrix(Tdf[i,]))
-  Pcc<-raster::extent(Pc)
-  e <- as(Pcc, "SpatialPolygons")
-  proj4string(e) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-  lines(e)
+  Pc <- Tdf[i,]
+  e <- st_sfc(st_linestring(rbind(
+    c(Pc$xmin, Pc$ymin), 
+    c(Pc$xmin, Pc$ymax), 
+    c(Pc$xmax, Pc$ymax), 
+    c(Pc$xmax, Pc$ymin), 
+    c(Pc$xmin, Pc$ymin)
+  )), crs = 3005)
+  plot(e, add = TRUE)
 }
-lines(ProvPlt,col='red')
+
+plot(ProvPlt,col='red', add = TRUE)
+## To here sf-ified
 
 #Loop through each tile and generate road density raster
 #Function that takes a shape file and bounding box and generates a clipped shape file
@@ -89,6 +98,7 @@ gClip <- function(shp, bb){
   proj4string(b_poly) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
   gIntersection(shp, b_poly, byid = T, drop_lower_td=TRUE)#last parameter to fix gIntersect error
 }
+
 
 #Loop through each tile and calculate road density for each 1ha cell
 ptm <- proc.time()
