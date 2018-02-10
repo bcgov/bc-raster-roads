@@ -17,7 +17,7 @@
 require(raster)
 # require(rgdal)
 require(spatstat)
-# require(maptools)
+require(maptools)
 # require(rgeos)
 require(RColorBrewer)
 require(dplyr)
@@ -69,62 +69,66 @@ for (i in 1:nTileRows) {
 ProvPlt <- st_as_sfc(as(raster::extent(ProvRast), "SpatialLines"), crs = 3005)
 plot(ProvPlt)
 
+
+#' convert a bounding box to a sfc polygon object
+#'
+#' @param bb a bounding box or list with xmin, xmax, ymin, ymax elements
+#' @param crs 
+bb_to_polygon <- function(bb, crs) {
+  st_sfc(st_polygon(list(rbind(
+    c(bb$xmin, bb$ymin),
+    c(bb$xmin, bb$ymax),
+    c(bb$xmax, bb$ymax),
+    c(bb$xmax, bb$ymin),
+    c(bb$xmin, bb$ymin)
+  ))), crs = crs)
+}
+
 #Add each tile as a check
 i <- 1
 for (i in 1:(nTileRows*nTileRows)) {
-  Pc <- Tdf[i,]
-  e <- st_sfc(st_linestring(rbind(
-    c(Pc$xmin, Pc$ymin), 
-    c(Pc$xmin, Pc$ymax), 
-    c(Pc$xmax, Pc$ymax), 
-    c(Pc$xmax, Pc$ymin), 
-    c(Pc$xmin, Pc$ymin)
-  )), crs = 3005)
+  e <- bb_to_polygon(Tdf[i, ], 3005)
   plot(e, add = TRUE)
 }
 
 plot(ProvPlt,col='red', add = TRUE)
-## To here sf-ified
 
 #Loop through each tile and generate road density raster
 #Function that takes a shape file and bounding box and generates a clipped shape file
 #code snippet based on: https://www.rdocumentation.org/packages/stplanr/versions/0.1.9
 
-gClip <- function(shp, bb){
-  if(class(bb) == "matrix") 
-    b_poly <- as(extent(as.vector(t(bb))), "SpatialPolygons")
-  else 
-    b_poly <- as(extent(bb), "SpatialPolygons")
-  proj4string(b_poly) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-  gIntersection(shp, b_poly, byid = T, drop_lower_td=TRUE)#last parameter to fix gIntersect error
+st_clip <- function(shp, bb){
+  b_poly <- bb_to_polygon(bb, 3005)
+  st_intersection(shp, b_poly)#last parameter to fix gIntersect error
 }
 
 
 #Loop through each tile and calculate road density for each 1ha cell
 ptm <- proc.time()
-i<-1
-for (i in 1:(nTileRows*nTileRows)) {
-  Pc<-as.vector(as.matrix(Tdf[i,]))
-  Pcc<-raster::extent(Pc)
-  TilePoly <- gClip(roadsIN, Pcc)
-  DefaultRaster<-raster(Pcc, crs=projection(roadsIN), resolution=c(100,100),vals=0,ext=Pcc)
-  
-#Code snippet for using spatstat package approach to calculating 1ha raster cell road density
-#originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html  
-  if(length(TilePoly)>0) {
-    roadlengthT1 <- as.psp(as(TilePoly, 'SpatialLines')) %>%
-      pixellate.psp(eps=100)
-    
-    roadlengthT2<-raster(roadlengthT1,crs=projection(roadsIN))
-    roadlengthT3 <- extend(roadlengthT2, Pcc, value=0)
-    roadlengthT <- resample(roadlengthT3,DefaultRaster,method='ngb')
-  } else {  
-    roadlengthT<-DefaultRaster
+i <- 1
+for (i in 1:(nTileRows * nTileRows)) {
+  Pc <- as.vector(as.matrix(Tdf[i, ]))
+  Pcc <- raster::extent(Pc)
+  TilePoly <- st_clip(roads_sf, Tdf[i, ])
+  DefaultRaster <- raster(Pcc, crs = st_crs(roads_sf)$projfstring, resolution = c(100, 100), vals = 0, ext = Pcc)
+
+  # Code snippet for using spatstat package approach to calculating 1ha raster cell road density
+  # originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html
+  if (length(TilePoly) > 0) {
+    roadlengthT1 <- as.psp(as(TilePoly, "Spatial")) %>%
+      pixellate.psp(eps = 100)
+
+    roadlengthT2 <- raster(roadlengthT1, crs = st_crs(roads_sf)$proj4string)
+    roadlengthT3 <- extend(roadlengthT2, Pcc, value = 0)
+    roadlengthT <- resample(roadlengthT3, DefaultRaster, method = "ngb")
+  } else {
+    roadlengthT <- DefaultRaster
   }
-  writeRaster(roadlengthT, filename=paste(tileOutDir,"rdTile_",i,".tif",sep=''), format="GTiff", overwrite=TRUE)
-  print(paste(tileOutDir,"rdTile_",i,".tif",sep=''))
+  writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
+  print(paste(tileOutDir, "rdTile_", i, ".tif", sep = ""))
   gc()
 }
+## To here sf-ified
 
 #Memory functions - object.size(roadsIN), gc(), rm()
 
