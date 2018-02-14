@@ -11,6 +11,7 @@
 # See the License for the specific language governing permissions and limitations under the License.
 require(rgdal)
 library(sf)
+library(dplyr)
 
 OutDir<-('out/')
 figsOutDir<-paste(OutDir,'figures/',sep='')
@@ -38,7 +39,8 @@ print(fc_list)
 IntRds <- readOGR(dsn = Rd_gdb, layer = "TRANSPORT_LINE")
 
 # Also read as sf
-roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE")
+roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE") %>% 
+  mutate(rd_len = st_length(.))
 
 # Write metadata from gdb to csv files
 lapply(fc_list[grepl("CODE$", fc_list)], function(l) {
