@@ -8,3 +8,4 @@ internal.R
 *.pdf
 *.html
 tmp/
+.DS_Store
