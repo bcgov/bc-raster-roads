@@ -39,41 +39,30 @@ ProvRast <- raster(
 #identify the extents for each tile and use to clip for processing
 
 #extents of input layer
-ProvBB <- bbox(ProvRast)
+ProvBB <- st_bbox(ProvRast)
 
 #Number of tile rows, number of columns will be the same
 nTileRows <- 10
 
-#Determine the seed extents for generating the tile extents
-#Code modified from https://stackoverflow.com/questions/38851909/divide-bounding-box-extent-into-several-parts-in-r
+# Tile borders by making a sequence from bbox
+x_borders <- seq(ProvBB$xmin, ProvBB$xmax, length.out = nTileRows + 1)
+y_borders <- seq(ProvBB$ymin, ProvBB$ymax, length.out = nTileRows + 1)
 
-Tseed <- data.frame(x = seq(1:nTileRows))
-xFactor <- (ProvBB[3] - ProvBB[1])/nTileRows
-yFactor <- (ProvBB[4] - ProvBB[2])/nTileRows
-Tseed$xCH <- Tseed$x*xFactor + ProvBB[1]
-Tseed$yCH <- Tseed$x*yFactor + ProvBB[2]
-
-#generate data.frame of tile extents based on bounding box
-Tdf <- data.frame(xmin = double(), xmax = double(), ymin = double(), ymax = double())
-i <- 1
-for (i in 1:nTileRows) {
-  for (j in 1:nTileRows) {
-    Tdfn <- data.frame(xmin = Tseed$xCH[i] - xFactor, xmax = Tseed$xCH[i], 
-                       ymin = Tseed$yCH[j] - yFactor, ymax = Tseed$yCH[j])
-    Tdf <- rbind(Tdf, Tdfn)
-    # rbind(df, setNames(de, names(df)))
-  }
-}
+Tdf <- cbind(
+  expand.grid(xmin = x_borders[1:nTileRows],
+              ymin = y_borders[1:nTileRows]), 
+  expand.grid(xmax = x_borders[2:(nTileRows + 1)], 
+              ymax = y_borders[2:(nTileRows + 1)])
+)[, c("xmin", "xmax", "ymin", "ymax")]
 
 #Plot Province bbox to check
 ProvPlt <- st_as_sfc(as(raster::extent(ProvRast), "SpatialLines"), crs = 3005)
 plot(ProvPlt)
 
-
 #' convert a bounding box to a sfc polygon object
 #'
 #' @param bb a bounding box or list with xmin, xmax, ymin, ymax elements
-#' @param crs 
+#' @param crs a number with epsg code or proj4string
 bb_to_polygon <- function(bb, crs) {
   st_sfc(st_polygon(list(rbind(
     c(bb$xmin, bb$ymin),
@@ -85,39 +74,47 @@ bb_to_polygon <- function(bb, crs) {
 }
 
 #Add each tile as a check
-i <- 1
 for (i in 1:(nTileRows*nTileRows)) {
   e <- bb_to_polygon(Tdf[i, ], 3005)
   plot(e, add = TRUE)
 }
 
-plot(ProvPlt,col='red', add = TRUE)
+plot(ProvPlt,col = 'red', add = TRUE)
 
 #Loop through each tile and generate road density raster
 #Function that takes a shape file and bounding box and generates a clipped shape file
-#code snippet based on: https://www.rdocumentation.org/packages/stplanr/versions/0.1.9
-
 st_clip <- function(shp, bb){
   b_poly <- bb_to_polygon(bb, 3005)
-  st_intersection(shp, b_poly)#last parameter to fix gIntersect error
+  st_intersection(shp, b_poly)
 }
-
 
 #Loop through each tile and calculate road density for each 1ha cell
 ptm <- proc.time()
-i <- 1
+# testing
+# i <- 35
 for (i in 1:(nTileRows * nTileRows)) {
   Pc <- as.vector(as.matrix(Tdf[i, ]))
   Pcc <- raster::extent(Pc)
   TilePoly <- st_clip(roads_sf, Tdf[i, ])
-  DefaultRaster <- raster(Pcc, crs = st_crs(roads_sf)$projfstring, resolution = c(100, 100), vals = 0, ext = Pcc)
-
-  # Code snippet for using spatstat package approach to calculating 1ha raster cell road density
-  # originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html
-  if (length(TilePoly) > 0) {
+  DefaultRaster <- raster(Pcc, crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0, ext = Pcc)
+  
+  if (nrow(TilePoly) > 0) {
+    
+    ##  This way is about twice as slow as the psp method below
+    # DefaultRaster[] <- 1:ncell(DefaultRaster)
+    # rsp <- spex::polygonize(DefaultRaster) # spex
+    # rp1 <- st_intersection(TilePoly[,1], rsp)
+    # rp1$rd_len <- as.numeric(st_length(rp1))
+    # x <- tapply(rp1$rd_len, rp1$layer, sum, na.rm = TRUE)
+    # r <- raster(DefaultRaster)
+    # r[as.integer(names(x))] <- x
+    # r[is.na(r)] <- 0
+    
+    # Code snippet for using spatstat package approach to calculating 1ha raster cell road density
+    # originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html
     roadlengthT1 <- as.psp(as(TilePoly, "Spatial")) %>%
       pixellate.psp(eps = 100)
-
+    
     roadlengthT2 <- raster(roadlengthT1, crs = st_crs(roads_sf)$proj4string)
     roadlengthT3 <- extend(roadlengthT2, Pcc, value = 0)
     roadlengthT <- resample(roadlengthT3, DefaultRaster, method = "ngb")
@@ -126,7 +123,7 @@ for (i in 1:(nTileRows * nTileRows)) {
   }
   writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
   print(paste(tileOutDir, "rdTile_", i, ".tif", sep = ""))
-  gc()
+  # gc()
 }
 ## To here sf-ified
 
