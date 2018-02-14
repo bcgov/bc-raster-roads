@@ -7,3 +7,4 @@ data/
 internal.R
 *.pdf
 *.html
+tmp/
