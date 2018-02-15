@@ -75,12 +75,12 @@ soe_roads_summary
 ## Bar chart of roads by surface type
 ## creating a colour brewer palette from http://colorbrewer2.org/
 colrs <- brewer.pal(6, "Paired")
-names(colrs) <- unique(soe_road_summary$TRANSPORT_LINE_SURFACE_CODE)
+names(colrs) <- unique(soe_roads_summary$TRANSPORT_LINE_SURFACE_CODE)
 
 soe_roads_sum_chart <- soe_roads_summary %>% 
   ggplot(aes(fct_reorder(DESCRIPTION, total_length), total_length/1000)) +
   geom_col(aes(fill = TRANSPORT_LINE_SURFACE_CODE)) +
-  scale_fill_manual(values = rev(colrs), labels = unique(soe_road_summary$DESCRIPTION),
+  scale_fill_manual(values = rev(colrs), labels = unique(soe_roads_summary$DESCRIPTION),
                     guide = FALSE) +
     theme_soe() +
     coord_flip() +
