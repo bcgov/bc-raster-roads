@@ -18,18 +18,20 @@ knitr::opts_chunk$set(
 bcgovr::devex_badge("Exploration")
 ```
 
-# Road Analysis for B.C.
+# Road Density Analysis for B.C.
+
+
+### Data
+This analysis uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/c4935326-27cc-4324-8a2b-61685d3e9ac4)) and distributed under the [B.C. Crown Copyright ](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
+
+All metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/c4935326-27cc-4324-8a2b-61685d3e9ac4).
 
 ### Usage
 
+There are two core scripts that are required for the road density analysis, they need to be run in order:
 
-There are four core scripts that are required for the analysis, they need to be run in order:
-
-- 01_clean.R
+- 01_load.R
 - 02_analysis.R
-- 03_visualize.R
-- 04_output.R
-
 
 
 ### Project Status

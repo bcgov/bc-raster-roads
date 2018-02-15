@@ -1,17 +1,21 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
-<a rel="Exploration" href="https://github.com/BCDevExchange/docs/blob/master/discussion/projectstates.md"><img alt="Being designed and built, but in the lab. May change, disappear, or be buggy." style="border-width:0" src="https://assets.bcdevexchange.org/images/badges/exploration.svg" title="Being designed and built, but in the lab. May change, disappear, or be buggy." /></a>
+<a id="devex-badge" rel="Exploration" href="https://github.com/BCDevExchange/assets/blob/master/README.md"><img alt="Being designed and built, but in the lab. May change, disappear, or be buggy." style="border-width:0" src="https://assets.bcdevexchange.org/images/badges/exploration.svg" title="Being designed and built, but in the lab. May change, disappear, or be buggy." /></a>
 
-Road Analysis for B.C.
-======================
+Road Density Analysis for B.C.
+==============================
+
+### Data
+
+This analysis uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/c4935326-27cc-4324-8a2b-61685d3e9ac4)) and distributed under the [B.C. Crown Copyright](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
+
+All metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/c4935326-27cc-4324-8a2b-61685d3e9ac4).
 
 ### Usage
 
-There are four core scripts that are required for the analysis, they need to be run in order:
+There are two core scripts that are required for the road density analysis, they need to be run in order:
 
--   01\_clean.R
+-   01\_load.R
 -   02\_analysis.R
--   03\_visualize.R
--   04\_output.R
 
 ### Project Status
 
