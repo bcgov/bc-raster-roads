@@ -64,21 +64,24 @@ soe_roads <- roads_sf %>%
   filter(!TRANSPORT_LINE_TYPE_CODE %in% exclude_type) %>% 
   filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface) 
 
-soe_road_summary <-  soe_roads %>% 
+soe_roads_summary <-  soe_roads %>% 
   st_set_geometry(NULL) %>%
   group_by(TRANSPORT_LINE_SURFACE_CODE) %>%
   summarise(total_length = as.numeric(units::set_units(sum(rd_len), km))) %>%
   left_join(road_surfaces, by = "TRANSPORT_LINE_SURFACE_CODE") %>%
   select(TRANSPORT_LINE_SURFACE_CODE, DESCRIPTION, total_length)
-soe_road_summary
+soe_roads_summary
 
 ## Bar chart of roads by surface type
 ## creating a colour brewer palette from http://colorbrewer2.org/
 colrs <- brewer.pal(6, "Paired")
+names(colrs) <- unique(soe_road_summary$TRANSPORT_LINE_SURFACE_CODE)
 
-soe_roads_sum_chart <- soe_road_summary %>% 
+soe_roads_sum_chart <- soe_roads_summary %>% 
   ggplot(aes(fct_reorder(DESCRIPTION, total_length), total_length/1000)) +
-  geom_col(fill = rev(colrs)) +
+  geom_col(aes(fill = TRANSPORT_LINE_SURFACE_CODE)) +
+  scale_fill_manual(values = rev(colrs), labels = unique(soe_road_summary$DESCRIPTION),
+                    guide = FALSE) +
     theme_soe() +
     coord_flip() +
     labs(x = "", y = "Total Length (km * 1000)", title = "Total Length of Roads in B.C. by Road Surface Type",
@@ -101,13 +104,15 @@ plot(soe_roads_sum_chart)
 # plot(st_geometry(bc), add = TRUE)
 
 ## ggplot2 dev version
-soe_road_map <- ggplot() +
+soe_roads_map <- ggplot() +
   geom_sf(data = bc_bound(), fill = NA, size = 0.2) +
     geom_sf(data = soe_roads, aes(colour = TRANSPORT_LINE_SURFACE_CODE), size = 0.1) +
   coord_sf(datum = NA) +
   scale_colour_manual(values = rev(colrs), guide = FALSE) +
     theme_minimal()
-plot(soe_road_map)
+
+soe_roads_map
+# plot(soe_roads_map)
 
 ## data = soe_roads[1:1000,] ## using small subset for plot iteration
 
@@ -120,9 +125,9 @@ plot(soe_roads_sum_chart)
 dev.off()
 
 png_retina(filename = "./out/soe_roads_map.png", width = 500, height = 500, units = "px", type = "cairo-png")
-plot(soe_road_map)
+plot(soe_roads_map)
 dev.off()
 
 png_retina(filename = "./out/soe_roads_viz.png", width = 900, height = 600, units = "px", type = "cairo-png")
-soe_roads_sum_chart + soe_road_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
+soe_roads_sum_chart + soe_roads_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
 dev.off()
