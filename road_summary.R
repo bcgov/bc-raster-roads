@@ -10,15 +10,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-library(sf)
-library(dplyr)
-library(readr)
-library(ggplot2) ## dev version from GitHub for geom_sf
-library(forcats)
-library(bcmaps)
-library(RColorBrewer)
-library(envreportutils)
-library(patchwork)
+library(sf) # spatial object
+library(dplyr) # data munging
+library(readr) # load data
+library(ggplot2) # plotting, dev version from GitHub for geom_sf
+library(forcats) # reorder factors
+library(bcmaps) # bc_bound()
+library(RColorBrewer) # colour palette
+library(envreportutils) # theme_soe()
+library(patchwork) # multiplot
+library(R.utils) # capitalize
 
 ## Ensure you have run 01_load.R before you run this
 ## Load data files from local folders
@@ -64,23 +65,33 @@ soe_roads <- roads_sf %>%
   filter(!TRANSPORT_LINE_TYPE_CODE %in% exclude_type) %>% 
   filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface) 
 
+## TODO: NEED to clip to a BC Boundary as some "P" roads go beyond borders.
+
 soe_roads_summary <-  soe_roads %>% 
   st_set_geometry(NULL) %>%
   group_by(TRANSPORT_LINE_SURFACE_CODE) %>%
   summarise(total_length = as.numeric(units::set_units(sum(rd_len), km))) %>%
   left_join(road_surfaces, by = "TRANSPORT_LINE_SURFACE_CODE") %>%
-  select(TRANSPORT_LINE_SURFACE_CODE, DESCRIPTION, total_length)
+  select(TRANSPORT_LINE_SURFACE_CODE, DESCRIPTION, total_length) %>% 
+  mutate(DESCRIPTION = R.utils::capitalize(DESCRIPTION))
 soe_roads_summary
 
 ## Bar chart of roads by surface type
 ## creating a colour brewer palette from http://colorbrewer2.org/
-colrs <- brewer.pal(6, "Paired")
+# colrs <- brewer.pal(6, "Paired")
+colrs <- c("D" = "#e31a1c",
+           "L" = "#b2df8a",
+           "P" = "grey30",
+           "R" = "#33a02c",
+           "S" = "#fdbf6f",
+           "U" = "#ffff99")
+
 names(colrs) <- unique(soe_roads_summary$TRANSPORT_LINE_SURFACE_CODE)
 
 soe_roads_sum_chart <- soe_roads_summary %>% 
   ggplot(aes(fct_reorder(DESCRIPTION, total_length), total_length/1000)) +
   geom_col(aes(fill = TRANSPORT_LINE_SURFACE_CODE)) +
-  scale_fill_manual(values = rev(colrs), labels = unique(soe_roads_summary$DESCRIPTION),
+  scale_fill_manual(values = colrs, labels = unique(soe_roads_summary$DESCRIPTION),
                     guide = FALSE) +
     theme_soe() +
     coord_flip() +
@@ -91,10 +102,12 @@ soe_roads_sum_chart <- soe_roads_summary %>%
           axis.text = element_text(size = 12),
           axis.title = element_text(size = 14),
           plot.subtitle = element_text(size = 12),
-          plot.margin = unit(c(30, 5, 30, 5), "mm"))
+          plot.margin = unit(c(10, 5, 15, 5), "mm"))
 plot(soe_roads_sum_chart)
 
-## Plot of BC with soe_roads
+## Plot of BC MAP with soe_roads
+## Plotting raods is SLOW
+
 # plot(st_geometry(soe_roads))
 # plot(soe_roads[, "TRANSPORT_LINE_SURFACE_CODE"])
 
@@ -103,31 +116,33 @@ plot(soe_roads_sum_chart)
 #   plot()
 # plot(st_geometry(bc), add = TRUE)
 
+# soe_roads_testing <- soe_roads %>%
+#   filter(TRANSPORT_LINE_SURFACE_CODE == "S")
+
 ## ggplot2 dev version
 soe_roads_map <- ggplot() +
   geom_sf(data = bc_bound(), fill = NA, size = 0.2) +
     geom_sf(data = soe_roads, aes(colour = TRANSPORT_LINE_SURFACE_CODE), size = 0.1) +
   coord_sf(datum = NA) +
-  scale_colour_manual(values = rev(colrs), guide = FALSE) +
+  scale_colour_manual(values = colrs, guide = FALSE) +
     theme_minimal()
-
-soe_roads_map
 # plot(soe_roads_map)
 
 ## data = soe_roads[1:1000,] ## using small subset for plot iteration
 
 # X11(type = "cairo")
-# plot(soe_road_map)
+# system.time(plot(soe_roads_map))
 
 ## Saving plots
 png_retina(filename = "./out/soe_roads_by_surface.png", width = 500, height = 500, units = "px", type = "cairo-png")
 plot(soe_roads_sum_chart)
 dev.off()
 
-png_retina(filename = "./out/soe_roads_map.png", width = 500, height = 500, units = "px", type = "cairo-png")
-plot(soe_roads_map)
-dev.off()
+# png_retina(filename = "./out/soe_roads_map.png", width = 500, height = 500, units = "px", type = "cairo-png")
+# plot(soe_roads_map)
+# dev.off()
+# 
+# png_retina(filename = "./out/soe_roads_viz.png", width = 900, height = 600, units = "px", type = "cairo-png")
+# soe_roads_sum_chart + soe_roads_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
+# dev.off()
 
-png_retina(filename = "./out/soe_roads_viz.png", width = 900, height = 600, units = "px", type = "cairo-png")
-soe_roads_sum_chart + soe_roads_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
-dev.off()
