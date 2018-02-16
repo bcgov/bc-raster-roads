@@ -14,14 +14,28 @@
 #Other code snipets have published reference
 
 # require(sp)
-require(raster)
 # require(rgdal)
-require(spatstat)
-require(maptools)
+# require(spatstat)
+# require(maptools)
 # require(rgeos)
+require(raster)
 require(RColorBrewer)
 require(dplyr)
 require(sf)
+library(foreach)
+library(doMC)
+library(spex)
+
+OutDir<-('out/')
+figsOutDir<-paste(OutDir,'figures/',sep='')
+dataOutDir<-paste(OutDir,'data/',sep='')
+tileOutDir<-paste(dataOutDir,'tile/',sep='')
+dir.create(file.path(OutDir), showWarnings = FALSE)
+dir.create(file.path(figsOutDir), showWarnings = FALSE)
+dir.create(file.path(dataOutDir), showWarnings = FALSE)
+dir.create(file.path(tileOutDir), showWarnings = FALSE)
+DataDir <- "data"
+dir.create(DataDir, showWarnings = FALSE)
 
 # IntRds <- readRDS("tmp/IntRds.rds")
 roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
@@ -74,7 +88,7 @@ bb_to_polygon <- function(bb, crs) {
 }
 
 #Add each tile as a check
-for (i in 1:(nTileRows*nTileRows)) {
+for (i in 1:nrow(Tdf)) {
   e <- bb_to_polygon(Tdf[i, ], 3005)
   plot(e, add = TRUE)
 }
@@ -83,48 +97,51 @@ plot(ProvPlt,col = 'red', add = TRUE)
 
 #Loop through each tile and generate road density raster
 #Function that takes a shape file and bounding box and generates a clipped shape file
-st_clip <- function(shp, bb){
+clip_by_bbox <- function(shp, bb){
   b_poly <- bb_to_polygon(bb, 3005)
   st_intersection(shp, b_poly)
 }
 
 #Loop through each tile and calculate road density for each 1ha cell
+registerDoMC(3)
+
 ptm <- proc.time()
-# testing
-# i <- 35
-for (i in 1:(nTileRows * nTileRows)) {
+foreach(i = 25:nrow(Tdf)) %dopar% {
   Pc <- as.vector(as.matrix(Tdf[i, ]))
   Pcc <- raster::extent(Pc)
-  TilePoly <- st_clip(roads_sf, Tdf[i, ])
+  TilePoly <- clip_by_bbox(roads_sf, Tdf[i, ])
   DefaultRaster <- raster(Pcc, crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0, ext = Pcc)
   
   if (nrow(TilePoly) > 0) {
     
-    ##  This way is about twice as slow as the psp method below
-    # DefaultRaster[] <- 1:ncell(DefaultRaster)
-    # rsp <- spex::polygonize(DefaultRaster) # spex
-    # rp1 <- st_intersection(TilePoly[,1], rsp)
-    # rp1$rd_len <- as.numeric(st_length(rp1))
-    # x <- tapply(rp1$rd_len, rp1$layer, sum, na.rm = TRUE)
-    # r <- raster(DefaultRaster)
-    # r[as.integer(names(x))] <- x
-    # r[is.na(r)] <- 0
+    ##  This way is about twice as slow as the psp method below,
+    ##  but calculates lengths more directly...
+    DefaultRaster[] <- 1:ncell(DefaultRaster)
+    rsp <- spex::polygonize(DefaultRaster) # spex
+    rp1 <- st_intersection(TilePoly[,1], rsp)
+    rp1$rd_len <- as.numeric(st_length(rp1))
+    x <- tapply(rp1$rd_len, rp1$layer, sum, na.rm = TRUE)
+    roadlengthT <- raster(DefaultRaster)
+    roadlengthT[as.integer(names(x))] <- x
+    roadlengthT[is.na(roadlengthT)] <- 0
     
     # Code snippet for using spatstat package approach to calculating 1ha raster cell road density
     # originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html
-    roadlengthT1 <- as.psp(as(TilePoly, "Spatial")) %>%
-      pixellate.psp(eps = 100)
-    
-    roadlengthT2 <- raster(roadlengthT1, crs = st_crs(roads_sf)$proj4string)
-    roadlengthT3 <- extend(roadlengthT2, Pcc, value = 0)
-    roadlengthT <- resample(roadlengthT3, DefaultRaster, method = "ngb")
+    # roadlengthT1 <- as.psp(as(TilePoly, "Spatial")) %>%
+    #   pixellate.psp(eps = 100)
+    # 
+    # roadlengthT2 <- raster(roadlengthT1, crs = st_crs(roads_sf)$proj4string)
+    # roadlengthT3 <- extend(roadlengthT2, Pcc, value = 0)
+    # roadlengthT <- resample(roadlengthT3, DefaultRaster, method = "ngb")
   } else {
     roadlengthT <- DefaultRaster
   }
-  writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
+  writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_sf", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
   print(paste(tileOutDir, "rdTile_", i, ".tif", sep = ""))
-  # gc()
+  gc()
 }
+proc.time() - ptm
+beepr::beep()
 ## To here sf-ified
 
 #Memory functions - object.size(roadsIN), gc(), rm()
@@ -134,13 +151,14 @@ for (i in 1:(nTileRows * nTileRows)) {
 
 library(gdalUtils)
 #Build list of all raster files you want to join (in your current working directory).
-Tiles<- list.files(path=paste(tileOutDir,sep=''), pattern='rdTile_')
+Tiles <- list.files(path = paste(tileOutDir, sep=''), pattern = 'rdTile_')
 
 #Make a template raster file to build onto
-template<-ProvRast
-writeRaster(template, file=paste(tileOutDir,"RoadDensR.tif",sep=''), format="GTiff",overwrite=TRUE)
+template <- ProvRast
+writeRaster(template, filename = paste(tileOutDir, "RoadDensR.tif", sep = ''), 
+            format = "GTiff", overwrite = TRUE)
 #Merge all raster tiles into one big raster.
-RoadDensR<-mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
+RoadDensR <- mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
                           dst_dataset=paste(tileOutDir,"RoadDensR.tif",sep=''),
                           of="GTiff",
                           output_Raster=TRUE,
@@ -149,5 +167,5 @@ gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
 #Plot to test
 plot(RoadDensR)
 #lines(roadsIN,col='red')
-proc.time() - ptm 
+proc.time() - ptm
 
