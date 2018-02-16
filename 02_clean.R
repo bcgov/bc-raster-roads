@@ -43,7 +43,7 @@ otherRds<-subset(IntRds, IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% otherTypes
 #Roads are classified into 'Use Class" using TRANSPORT_LINE_TYPE_CODE as follows:
 
 # Not roads - Ferry routes, non motorized Trails, proposed
-notRoads<-c("F","FP","FR","RP","T", "TD", "TR") 
+notRoads<-c("F","FP","FR","RP","T", "TD") 
 # High use roads - arterial, collectors, driveways, freeways, highways, road local, runway, pedestrial mall, ramp, strata
 HighUse<-c("RA1","RA2","RC2", "RC1","RDN","RF","RH1","RH2","RLO","RPD","RPM","RR","RRP","RST")
 # Moderate use roads - recreation
@@ -52,7 +52,7 @@ ModUse<-c("REC")
 LowUse<-c("RLN", "RWA","TS")
 #Classification depends on surface type - alleyway, runway non-demographic, resource demographic, 
 # resource non-status, resource, restricted, service, unclassified, recreation trail
-dependsOnSurface<-c("RR1","RRC","RRD","RRN","RRS","RRT","RSV","RU")
+dependsOnSurface<-c("RR1","RRC","RRD","RRN","RRS","RRT","RSV","RU", "TR")
 
 RdUse_notRoads<-subset(IntRds, 
                    (TRANSPORT_LINE_TYPE_CODE %in% notRoads))
