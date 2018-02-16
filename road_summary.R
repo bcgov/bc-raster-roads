@@ -102,7 +102,7 @@ soe_roads_sum_chart <- soe_roads_summary %>%
           axis.text = element_text(size = 12),
           axis.title = element_text(size = 14),
           plot.subtitle = element_text(size = 12),
-          plot.margin = unit(c(30, 5, 30, 5), "mm"))
+          plot.margin = unit(c(10, 5, 15, 5), "mm"))
 plot(soe_roads_sum_chart)
 
 ## Plot of BC MAP with soe_roads
