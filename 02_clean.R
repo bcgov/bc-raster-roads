@@ -88,12 +88,19 @@ bb_to_polygon <- function(bb, crs) {
 }
 
 #Add each tile as a check
-for (i in 1:nrow(Tdf)) {
-  e <- bb_to_polygon(Tdf[i, ], 3005)
-  plot(e, add = TRUE)
+grid_sf <- map_dfr(1:nrow(Tdf), ~ {
+  st_sf(id = .x, geom = bb_to_polygon(Tdf[.x, ], 3005))
+})
+
+grid_sf <- st_sf(id = 1, geometry = bb_to_polygon(Tdf[1, ], 3005))
+for (i in 2:nrow(Tdf)) {
+  e <- st_sf(id = i, geometry = bb_to_polygon(Tdf[i, ], 3005))
+  grid_sf <- rbind(grid_sf, e)
 }
 
-plot(ProvPlt,col = 'red', add = TRUE)
+plot(grid_sf)
+
+# roads_gridded <- st_intersection(roads_sf, grid_sf)
 
 #Loop through each tile and generate road density raster
 #Function that takes a shape file and bounding box and generates a clipped shape file
@@ -117,10 +124,13 @@ foreach(i = 25:nrow(Tdf)) %dopar% {
     ##  This way is about twice as slow as the psp method below,
     ##  but calculates lengths more directly...
     DefaultRaster[] <- 1:ncell(DefaultRaster)
-    rsp <- spex::polygonize(DefaultRaster) # spex
+    rsp <- spex::polygonize(DefaultRaster) # spex pkg for quickly making polygons from raster
+    # Split tile poly into grid by the polygonized raster
     rp1 <- st_intersection(TilePoly[,1], rsp)
-    rp1$rd_len <- as.numeric(st_length(rp1))
+    rp1$rd_len <- as.numeric(st_length(rp1)) # road length in m for each grid cell
+    # Sum of road lengths in each grid cell
     x <- tapply(rp1$rd_len, rp1$layer, sum, na.rm = TRUE)
+    # Create raster and populate with sum of road lengths
     roadlengthT <- raster(DefaultRaster)
     roadlengthT[as.integer(names(x))] <- x
     roadlengthT[is.na(roadlengthT)] <- 0
