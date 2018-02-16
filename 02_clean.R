@@ -19,12 +19,12 @@
 # require(maptools)
 # require(rgeos)
 require(raster)
-require(RColorBrewer)
 require(dplyr)
 require(sf)
 library(foreach)
 library(doMC)
 library(spex)
+library(gdalUtils)
 
 OutDir<-('out/')
 figsOutDir<-paste(OutDir,'figures/',sep='')
@@ -52,7 +52,7 @@ ProvRast <- raster(
 #split Province into tiles for processing
 #identify the extents for each tile and use to clip for processing
 
-#extents of input layer
+# extent of input layer
 ProvBB <- st_bbox(ProvRast)
 
 #Number of tile rows, number of columns will be the same
@@ -62,6 +62,7 @@ nTileRows <- 10
 x_borders <- seq(ProvBB$xmin, ProvBB$xmax, length.out = nTileRows + 1)
 y_borders <- seq(ProvBB$ymin, ProvBB$ymax, length.out = nTileRows + 1)
 
+# Use x and y borders to create a data.frame of xmin, xmax, ymin, ymax
 Tdf <- cbind(
   expand.grid(xmin = x_borders[1:nTileRows],
               ymin = y_borders[1:nTileRows]), 
@@ -69,11 +70,7 @@ Tdf <- cbind(
               ymax = y_borders[2:(nTileRows + 1)])
 )[, c("xmin", "xmax", "ymin", "ymax")]
 
-#Plot Province bbox to check
-ProvPlt <- st_as_sfc(as(raster::extent(ProvRast), "SpatialLines"), crs = 3005)
-plot(ProvPlt)
-
-#' convert a bounding box to a sfc polygon object
+#' Function to convert a bounding box to a sfc polygon object
 #'
 #' @param bb a bounding box or list with xmin, xmax, ymin, ymax elements
 #' @param crs a number with epsg code or proj4string
@@ -87,42 +84,40 @@ bb_to_polygon <- function(bb, crs) {
   ))), crs = crs)
 }
 
-#Add each tile as a check
-grid_sf <- map_dfr(1:nrow(Tdf), ~ {
-  st_sf(id = .x, geom = bb_to_polygon(Tdf[.x, ], 3005))
-})
-
+# Create a polygon grid of size nTileRows * nTileRows
+# by creating a polygon for each xmin, xmax, ymin, ymax
+# and combining them
+# First row:
 grid_sf <- st_sf(id = 1, geometry = bb_to_polygon(Tdf[1, ], 3005))
+# Then add the rest:
 for (i in 2:nrow(Tdf)) {
   e <- st_sf(id = i, geometry = bb_to_polygon(Tdf[i, ], 3005))
   grid_sf <- rbind(grid_sf, e)
 }
 
+# Plot grid and Prov bounding box just to check
 plot(grid_sf)
+ProvPlt <- st_as_sfc(as(raster::extent(ProvRast), "SpatialLines"), crs = 3005)
+plot(ProvPlt, add = TRUE, col = "red")
 
-# roads_gridded <- st_intersection(roads_sf, grid_sf)
-
-#Loop through each tile and generate road density raster
-#Function that takes a shape file and bounding box and generates a clipped shape file
-clip_by_bbox <- function(shp, bb){
-  b_poly <- bb_to_polygon(bb, 3005)
-  st_intersection(shp, b_poly)
-}
+# Chop the roads up by the 10x10 tile grid
+roads_gridded <- st_intersection(roads_sf, grid_sf)
 
 #Loop through each tile and calculate road density for each 1ha cell
 registerDoMC(3)
 
 ptm <- proc.time()
-foreach(i = 25:nrow(Tdf)) %dopar% {
-  Pc <- as.vector(as.matrix(Tdf[i, ]))
-  Pcc <- raster::extent(Pc)
-  TilePoly <- clip_by_bbox(roads_sf, Tdf[i, ])
-  DefaultRaster <- raster(Pcc, crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0, ext = Pcc)
+foreach(i = grid_sf$id) %dopar% {
+  Pcc <- raster::extent(grid_sf[grid_sf$id == i, ])
+  DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
+                          resolution = c(100, 100), vals = 0, ext = Pcc)
+  
+  ## Use the roads layer that has already been chopped into tiles
+  TilePoly <- roads_gridded[roads_gridded$id == i, ]
   
   if (nrow(TilePoly) > 0) {
     
-    ##  This way is about twice as slow as the psp method below,
-    ##  but calculates lengths more directly...
+    ##  This calculates lengths more directly than psp method...
     DefaultRaster[] <- 1:ncell(DefaultRaster)
     rsp <- spex::polygonize(DefaultRaster) # spex pkg for quickly making polygons from raster
     # Split tile poly into grid by the polygonized raster
@@ -148,18 +143,16 @@ foreach(i = 25:nrow(Tdf)) %dopar% {
   }
   writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_sf", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
   print(paste(tileOutDir, "rdTile_", i, ".tif", sep = ""))
+  rm(Pcc, DefaultRaster, TilePoly, rsp, rp1, x, roadlengthT)
   gc()
 }
 proc.time() - ptm
-beepr::beep()
-## To here sf-ified
 
 #Memory functions - object.size(roadsIN), gc(), rm()
 
 #code to read rasters from a directory and mosaic - faster than merge or mosaic
 #Code snipet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
 
-library(gdalUtils)
 #Build list of all raster files you want to join (in your current working directory).
 Tiles <- list.files(path = paste(tileOutDir, sep=''), pattern = 'rdTile_')
 
@@ -169,10 +162,10 @@ writeRaster(template, filename = paste(tileOutDir, "RoadDensR.tif", sep = ''),
             format = "GTiff", overwrite = TRUE)
 #Merge all raster tiles into one big raster.
 RoadDensR <- mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
-                          dst_dataset=paste(tileOutDir,"RoadDensR.tif",sep=''),
-                          of="GTiff",
-                          output_Raster=TRUE,
-                          output.vrt=TRUE)
+                            dst_dataset=paste(tileOutDir,"RoadDensR.tif",sep=''),
+                            of="GTiff",
+                            output_Raster=TRUE,
+                            output.vrt=TRUE)
 gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
 #Plot to test
 plot(RoadDensR)
