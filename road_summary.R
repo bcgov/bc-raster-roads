@@ -65,6 +65,8 @@ soe_roads <- roads_sf %>%
   filter(!TRANSPORT_LINE_TYPE_CODE %in% exclude_type) %>% 
   filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface) 
 
+## TODO: NEED to clip to a BC Boundary as some "P" roads go beyond borders.
+
 soe_roads_summary <-  soe_roads %>% 
   st_set_geometry(NULL) %>%
   group_by(TRANSPORT_LINE_SURFACE_CODE) %>%
@@ -103,7 +105,9 @@ soe_roads_sum_chart <- soe_roads_summary %>%
           plot.margin = unit(c(30, 5, 30, 5), "mm"))
 plot(soe_roads_sum_chart)
 
-## Plot of BC with soe_roads
+## Plot of BC MAP with soe_roads
+## Plotting raods is SLOW
+
 # plot(st_geometry(soe_roads))
 # plot(soe_roads[, "TRANSPORT_LINE_SURFACE_CODE"])
 
@@ -134,11 +138,11 @@ png_retina(filename = "./out/soe_roads_by_surface.png", width = 500, height = 50
 plot(soe_roads_sum_chart)
 dev.off()
 
-png_retina(filename = "./out/soe_roads_map.png", width = 500, height = 500, units = "px", type = "cairo-png")
-plot(soe_roads_map)
-dev.off()
-
-png_retina(filename = "./out/soe_roads_viz.png", width = 900, height = 600, units = "px", type = "cairo-png")
-soe_roads_sum_chart + soe_roads_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
-dev.off()
+# png_retina(filename = "./out/soe_roads_map.png", width = 500, height = 500, units = "px", type = "cairo-png")
+# plot(soe_roads_map)
+# dev.off()
+# 
+# png_retina(filename = "./out/soe_roads_viz.png", width = 900, height = 600, units = "px", type = "cairo-png")
+# soe_roads_sum_chart + soe_roads_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
+# dev.off()
 
