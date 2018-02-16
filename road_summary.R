@@ -112,7 +112,7 @@ plot(soe_roads_sum_chart)
 #   plot()
 # plot(st_geometry(bc), add = TRUE)
 
-# soe_roads_testing <- soe_roads %>% 
+# soe_roads_testing <- soe_roads %>%
 #   filter(TRANSPORT_LINE_SURFACE_CODE == "S")
 
 ## ggplot2 dev version
@@ -127,7 +127,7 @@ soe_roads_map <- ggplot() +
 ## data = soe_roads[1:1000,] ## using small subset for plot iteration
 
 # X11(type = "cairo")
-# plot(soe_road_map)
+# system.time(plot(soe_roads_map))
 
 ## Saving plots
 png_retina(filename = "./out/soe_roads_by_surface.png", width = 500, height = 500, units = "px", type = "cairo-png")
@@ -141,3 +141,4 @@ dev.off()
 png_retina(filename = "./out/soe_roads_viz.png", width = 900, height = 600, units = "px", type = "cairo-png")
 soe_roads_sum_chart + soe_roads_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
 dev.off()
+
