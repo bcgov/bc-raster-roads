@@ -10,133 +10,102 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 #
+require(raster)
+require(rgdal)
+require('plyr')
+
+#Reference loaded roads
+IntRds<-RdsLoad
+
 #Stack Overflow code snipet use is licensed under the open source licence: : https://opensource.org/licenses/MIT
 #Other code snipets have published reference
 
-require(sp)
-require(raster)
-require(rgdal)
-require(spatstat)
-require(maptools)
-require(rgeos)
-require(RColorBrewer)
-require(dplyr)
+#Summarize all types of ROAD_SURFACE, ROAD_TYPE, ROAD_CLASS, FEATURE_TYPE, TRANSPORT_LINE_TYPE_Code
+#for categrozing roads used by vehicles
+rd_surface<-unique(IntRds@data$TRANSPORT_LINE_SURFACE_CODE)
+print(rd_surface)
+rd_type<-unique(IntRds@data$TRANSPORT_LINE_TYPE_CODE)
+print(rd_type)
 
-dir.create("tmp", showWarnings = FALSE)
+# Make table of all possible combinations to determine how to classify roads
+# into use types, capture all cases and if contribute to non-intact land
+Rd_Tbl<-count(IntRds@data,vars=c('TRANSPORT_LINE_SURFACE_CODE','TRANSPORT_LINE_TYPE_CODE'))
 
-roadsIN<-IntRds
-#Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
-ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=173787.5,ymx=1748187.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-                 ,res=c(100,100),vals=0)
-#ProvRast <- raster(extent(roadsIN), crs=projection(roadsIN),res=c(100,100),vals=0)
+#Group roads based on surface material - adapted from Forest Practices Board report Special Report #49
+pavedTypes<-c('P')
+gravelTypes<-c('L','R','S')
+otherTypes<-c('D','O','U','B')
+pavedRds<-subset(IntRds,IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% pavedTypes)
+gravelRds<-subset(IntRds, IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% gravelTypes)
+otherRds<-subset(IntRds, IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% otherTypes)
 
-#---------------------
-#split Province into tiles for processing
-#identify the extents for each tile and use to clip for processing
+#Group roads based on use - adopted from CE Grizzly Bear Protocol
+#Roads are classified into 'Use Class" using TRANSPORT_LINE_TYPE_CODE as follows:
 
-#extents of input layer
-ProvBB<-bbox(ProvRast)
+# Not roads - Ferry routes, non motorized Trails, proposed
+notRoads<-c("F","FP","FR","RP","T", "TD", "TR") 
+# High use roads - arterial, collectors, driveways, freeways, highways, road local, runway, pedestrial mall, ramp, strata
+HighUse<-c("RA1","RA2","RC2", "RC1","RDN","RF","RH1","RH2","RLO","RPD","RPM","RR","RRP","RST")
+# Moderate use roads - recreation
+ModUse<-c("REC")
+# Low use roads - lane, road water access, skid trails
+LowUse<-c("RLN", "RWA","TS")
+#Classification depends on surface type - alleyway, runway non-demographic, resource demographic, 
+# resource non-status, resource, restricted, service, unclassified, recreation trail
+dependsOnSurface<-c("RR1","RRC","RRD","RRN","RRS","RRT","RSV","RU")
 
-#Number of tile rows, number of columns will be the same
-nTileRows<-10
+RdUse_notRoads<-subset(IntRds, 
+                   (TRANSPORT_LINE_TYPE_CODE %in% notRoads))
+RdUse_High<-subset(IntRds, 
+                   (TRANSPORT_LINE_SURFACE_CODE %in% pavedTypes & 
+                      TRANSPORT_LINE_TYPE_CODE %in% dependsOnSurface) |
+                     (TRANSPORT_LINE_TYPE_CODE %in% HighUse))
+RdUse_Mod<-subset(IntRds, 
+                   (TRANSPORT_LINE_SURFACE_CODE %in% gravelTypes & 
+                      TRANSPORT_LINE_TYPE_CODE %in% dependsOnSurface) |
+                     (TRANSPORT_LINE_TYPE_CODE %in% ModUse))
+RdUse_Low<-subset(IntRds, 
+                   (TRANSPORT_LINE_SURFACE_CODE %in% otherTypes & 
+                      TRANSPORT_LINE_TYPE_CODE %in% dependsOnSurface) |
+                     (TRANSPORT_LINE_TYPE_CODE %in% LowUse))
+Roads<-subset(IntRds, 
+              !(TRANSPORT_LINE_TYPE_CODE %in% notRoads))
+writeOGR(obj=Roads, dsn=dataOutDir, layer="Roads", driver="ESRI Shapefile", overwrite_layer=TRUE) 
+#Roads <- readOGR(dsn=dataOutDir, layer="Roads")
 
-#Determine the seed extents for generating the tile extents
-#Code modified from https://stackoverflow.com/questions/38851909/divide-bounding-box-extent-into-several-parts-in-r
+##############################################
+#Other code
 
-x <- seq(1:nTileRows)
-Tseed <- data.frame(x)
-xFactor <- (ProvBB[3] - ProvBB[1])/length(x)
-yFactor <- (ProvBB[4] - ProvBB[2])/length(x)
-Tseed$xCH <- Tseed$x*xFactor + ProvBB[1]
-Tseed$yCH <- Tseed$x*yFactor + ProvBB[2]
+#Make data frame to check classification
+dfp<-data.frame(ROAD_CLASS=pavedRds@data$ROAD_CLASS, ROAD_SURFACE=pavedRds@data$ROAD_SURFACE)
+df1<-data.frame(ROAD_CLASS=RdUse_1@data$ROAD_CLASS, ROAD_SURFACE=RdUse_1@data$ROAD_SURFACE)
+df2<-data.frame(ROAD_CLASS=RdUse_2@data$ROAD_CLASS, ROAD_SURFACE=RdUse_2@data$ROAD_SURFACE)
+df3<-data.frame(ROAD_CLASS=RdUse_3@data$ROAD_CLASS, ROAD_SURFACE=RdUse_3@data$ROAD_SURFACE)
 
-#generate data.frame of tile extents based on bounding box
-Tdf <- data.frame(xmin=double(),xmax=double(),ymin=double(),ymax=double()) 
-i<-1
-for (i in 1:nTileRows) {
-  for (j in 1:nTileRows) {
-    Tdfn<-data.frame(xmin=Tseed$xCH[i]-xFactor,xmax=Tseed$xCH[i],ymin=Tseed$yCH[j]-yFactor,ymax=Tseed$yCH[j])
-    Tdf<-rbind(Tdf, Tdfn)
-    # rbind(df, setNames(de, names(df)))
-  }
-}
+###Checking roads that were buffered outside of R for comparison
+#Pull buffered roads out
+BufRds<- readOGR(dsn=Rd_gdb,layer=fc_list[2])
+raster::crs(BufRds) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+summary(BufRds)
+BufRdClip<-crop(BufRds, MClipRast)
 
-#Plot Province bbox to check
-ProvPlt <- as(raster::extent(ProvBB), "SpatialPolygons")
-proj4string(ProvPlt) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-plot(ProvPlt)
+#Modify CE Grizzly Bear open roads to keep all roads, but remove overgrown and boat
+#Remove trails and skids - small areas and minimum effect
+#For 'Open Roads' exclude:  ROAD_SURFACE in ('boat','overgrown')
+O1<-subset(IntRds, !(IntRds@data$ROAD_SURFACE %in% c('boat','overgrown')))
+#OR ROAD_CLASS in ('trail','skid'), Grizzly drops 'restricted', but kept here since still disturbe
+#O2<-subset(O1, !(O1@data$ROAD_CLASS %in% c('trail','skid')))
+#O2<-subset(O1, !(O1@data$ROAD_CLASS %in% c('trail','skid')))
+#Keep trails and skids since many are non-status roads - see - FPB SP 49 
+#field - transport line type code - 1 to 3 letter code - in data dictionary
+#field for NE - capital T trails from transport line type code
+#Seismic lines - not included
 
-#Add each tile as a check
-i<-1
-for (i in 1:(nTileRows*nTileRows)) {
-  Pc<-as.vector(as.matrix(Tdf[i,]))
-  Pcc<-raster::extent(Pc)
-  e <- as(Pcc, "SpatialPolygons")
-  proj4string(e) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-  lines(e)
-}
-lines(ProvPlt,col='red')
+#OR FEATURE_CODE = 'DA25150100' (overgrown)
+OpenRoads<-subset(O1, !(O1@data$FEATURE_TYPE == 'DA25150100'))
+#save as a shape file
+writeOGR(obj=OpenRoads, dsn=dataOutDir, layer="OpenRoads", driver="ESRI Shapefile", overwrite_layer=TRUE) 
 
-#Loop through each tile and generate road density raster
-#Function that takes a shape file and bounding box and generates a clipped shape file
-#code snippet based on: https://www.rdocumentation.org/packages/stplanr/versions/0.1.9
 
-gClip <- function(shp, bb){
-  if(class(bb) == "matrix") 
-    b_poly <- as(extent(as.vector(t(bb))), "SpatialPolygons")
-  else 
-    b_poly <- as(extent(bb), "SpatialPolygons")
-  proj4string(b_poly) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-  gIntersection(shp, b_poly, byid = T, drop_lower_td=TRUE)#last parameter to fix gIntersect error
-}
 
-#Loop through each tile and calculate road density for each 1ha cell
-ptm <- proc.time()
-i<-1
-for (i in 1:(nTileRows*nTileRows)) {
-  Pc<-as.vector(as.matrix(Tdf[i,]))
-  Pcc<-raster::extent(Pc)
-  TilePoly <- gClip(roadsIN, Pcc)
-  DefaultRaster<-raster(Pcc, crs=projection(roadsIN), res=c(100,100),vals=0,ext=Pcc)
-  
-#Code snippet for using spatstat package approach to calculating 1ha raster cell road density
-#originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html  
-  if(length(TilePoly)>0) {
-    roadlengthT1 <- as.psp(as(TilePoly, 'SpatialLines')) %>%
-      pixellate.psp(eps=100)
-    
-    roadlengthT2<-raster(roadlengthT1,crs=projection(roadsIN))
-    roadlengthT3 <- extend(roadlengthT2, Pcc, value=0)
-    roadlengthT <- resample(roadlengthT3,DefaultRaster,method='ngb')
-  } else {  
-    roadlengthT<-DefaultRaster
-  }
-  writeRaster(roadlengthT, filename=paste(tileOutDir,"rdTile_",i,".tif",sep=''), format="GTiff", overwrite=TRUE)
-  print(paste(tileOutDir,"rdTile_",i,".tif",sep=''))
-  gc()
-}
-
-#Memory functions - object.size(roadsIN), gc(), rm()
-
-#code to read rasters from a directory and mosaic - faster than merge or mosaic
-#Code snipet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
-
-library(gdalUtils)
-#Build list of all raster files you want to join (in your current working directory).
-Tiles<- list.files(path=paste(tileOutDir,sep=''), pattern='rdTile_')
-
-#Make a template raster file to build onto
-template<-ProvRast
-writeRaster(template, file=paste(tileOutDir,"RoadDensR.tif",sep=''), format="GTiff",overwrite=TRUE)
-#Merge all raster tiles into one big raster.
-RoadDensR<-mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
-                          dst_dataset=paste(tileOutDir,"RoadDensR.tif",sep=''),
-                          of="GTiff",
-                          output_Raster=TRUE,
-                          output.vrt=TRUE)
-gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
-#Plot to test
-plot(RoadDensR)
-#lines(roadsIN,col='red')
-proc.time() - ptm 
 

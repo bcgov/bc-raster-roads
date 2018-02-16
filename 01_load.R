@@ -10,6 +10,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 require(rgdal)
+require(raster)
 
 OutDir<-('out/')
 figsOutDir<-paste(OutDir,'figures/',sep='')
@@ -21,26 +22,29 @@ dir.create(file.path(dataOutDir), showWarnings = FALSE)
 dir.create(file.path(tileOutDir), showWarnings = FALSE)
 DataDir <- ("data/")
 
-#Consolidated roads will be downloadable from some CE maintained location data
-ConRdsFile<-'2017'
-ConRds_zip <- paste(DataDir,ConRdsFile,".zip",sep='')
+# Raw road file 
+# DRA from BCDC:
+# https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-master-partially-attributed-roads/resource/a06a2e11-a0b1-41d4-b857-cb2770e34fb0
+RdsZip<-'dra.gdb.zip'
+download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip",
+              destfile = file.path(DataDir, RdsZip))
+unzip(file.path(DataDir, RdsZip), exdir = file.path(DataDir, "DRA"))
 
-unzip(ConRds_zip, exdir = DataDir, overwrite = TRUE)
-
-#zipped and zip files may not have the same name - search directory for gdb
-Rd_gdb<-paste(DataDir,ConRdsFile,'/',(list.files(path=paste(DataDir,ConRdsFile,'/',sep=''), pattern='gdb')[1]),sep='')
+# zip files may not have the same name - search directory for gdb
+Rd_gdb<-paste(DataDir,RdsFile,'/',(list.files(path=paste(DataDir,RdsFile,'/',sep=''), pattern='gdb')[1]),sep='')
 
 # List feature classes in the geodatabase
 fc_list <- ogrListLayers(Rd_gdb)
 print(fc_list)
 
-# Read integrated roads feature class-usually the first record in list, but can check
-IntRds <- readOGR(dsn=Rd_gdb,layer=fc_list[1])
-
-#set projection to BC Albers
-crs(IntRds) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
+# "TRANSPORT_LINE" layer contains road geometry and attributes - see https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e/resource/2e2a8314-e619-45a1-a5e1-fd1a9e1de91c/download/dgtlroadatlas-public-delivery-data-dictionary.pdf
+# Read TRANSPORT_LINE feature class
+RdsLoad <- readOGR(dsn=Rd_gdb,layer="TRANSPORT_LINE")
+# set projection to BC Albers
+raster::crs(RdsLoad) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
 
 # Determine the FC extent, projection, and attribute information
-summary(IntRds)
+summary(RdsLoad)
+writeOGR(obj=RdsLoad, dsn=dataOutDir, layer="RdsLoad", driver="ESRI Shapefile", overwrite_layer=TRUE) 
 
 
