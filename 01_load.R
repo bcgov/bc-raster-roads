@@ -46,5 +46,7 @@ raster::crs(RdsLoad) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +
 # Determine the FC extent, projection, and attribute information
 summary(RdsLoad)
 writeOGR(obj=RdsLoad, dsn=dataOutDir, layer="RdsLoad", driver="ESRI Shapefile", overwrite_layer=TRUE) 
-
+#RdsLoad <- readOGR(dsn=dataOutDir, layer="RdsLoad")
+#RdsLoad@data$TRANSPORT_LINE_TYPE_CODE<-RdsLoad@data$TRANSPOR_1
+#RdsLoad@data$TRANSPORT_LINE_SURFACE_CODE<-RdsLoad@data$TRANSPOR_2
 

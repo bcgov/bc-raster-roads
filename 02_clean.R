@@ -13,6 +13,7 @@
 require(raster)
 require(rgdal)
 require('plyr')
+library(readr) # load data
 
 #Reference loaded roads
 IntRds<-RdsLoad
@@ -30,46 +31,58 @@ print(rd_type)
 # Make table of all possible combinations to determine how to classify roads
 # into use types, capture all cases and if contribute to non-intact land
 Rd_Tbl<-count(IntRds@data,vars=c('TRANSPORT_LINE_SURFACE_CODE','TRANSPORT_LINE_TYPE_CODE'))
+write_csv(Rd_Tbl, "out/Rd_x_tbl.csv")
 
 #Group roads based on surface material - adapted from Forest Practices Board report Special Report #49
 pavedTypes<-c('P')
 gravelTypes<-c('L','R','S')
-otherTypes<-c('D','O','U','B')
+otherTypes<-c('D','O','B')
+unknownTypes<-c('U')
 pavedRds<-subset(IntRds,IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% pavedTypes)
 gravelRds<-subset(IntRds, IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% gravelTypes)
 otherRds<-subset(IntRds, IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% otherTypes)
+unknownRds<-subset(IntRds, IntRds@data$TRANSPORT_LINE_SURFACE_CODE %in% otherTypes)
 
 #Group roads based on use - adopted from CE Grizzly Bear Protocol
 #Roads are classified into 'Use Class" using TRANSPORT_LINE_TYPE_CODE as follows:
 
 # Not roads - Ferry routes, non motorized Trails, proposed
-notRoads<-c("F","FP","FR","RP","T", "TD") 
+notRoads<-c("F","FP","FR","RP","T", "TD", "RWA") 
 # High use roads - arterial, collectors, driveways, freeways, highways, road local, runway, pedestrial mall, ramp, strata
 HighUse<-c("RA1","RA2","RC2", "RC1","RDN","RF","RH1","RH2","RLO","RPD","RPM","RR","RRP","RST")
 # Moderate use roads - recreation
 ModUse<-c("REC")
+ModUseUsurf<-c("RRD","RRS", "RSV")
 # Low use roads - lane, road water access, skid trails
-LowUse<-c("RLN", "RWA","TS")
+LowUse<-c("RLN","TS")
+LowUseUsurf<-c("RRN","RU","TR")
 #Classification depends on surface type - alleyway, runway non-demographic, resource demographic, 
 # resource non-status, resource, restricted, service, unclassified, recreation trail
 dependsOnSurface<-c("RR1","RRC","RRD","RRN","RRS","RRT","RSV","RU", "TR")
+NoLongerRoads<-c("D","O")
 
 RdUse_notRoads<-subset(IntRds, 
-                   (TRANSPORT_LINE_TYPE_CODE %in% notRoads))
+                   (TRANSPORT_LINE_TYPE_CODE %in% notRoads)|
+                     (TRANSPORT_LINE_SURFACE_CODE %in% NoLongerRoads) )
 RdUse_High<-subset(IntRds, 
                    (TRANSPORT_LINE_SURFACE_CODE %in% pavedTypes & 
                       TRANSPORT_LINE_TYPE_CODE %in% dependsOnSurface) |
-                     (TRANSPORT_LINE_TYPE_CODE %in% HighUse))
+                     (TRANSPORT_LINE_TYPE_CODE %in% HighUse) )
 RdUse_Mod<-subset(IntRds, 
                    (TRANSPORT_LINE_SURFACE_CODE %in% gravelTypes & 
                       TRANSPORT_LINE_TYPE_CODE %in% dependsOnSurface) |
-                     (TRANSPORT_LINE_TYPE_CODE %in% ModUse))
+                     (TRANSPORT_LINE_TYPE_CODE %in% ModUse)|
+                    (TRANSPORT_LINE_SURFACE_CODE %in% unknownTypes & 
+                       TRANSPORT_LINE_TYPE_CODE %in% ModUseUsurf))
 RdUse_Low<-subset(IntRds, 
                    (TRANSPORT_LINE_SURFACE_CODE %in% otherTypes & 
                       TRANSPORT_LINE_TYPE_CODE %in% dependsOnSurface) |
-                     (TRANSPORT_LINE_TYPE_CODE %in% LowUse))
+                     (TRANSPORT_LINE_TYPE_CODE %in% LowUse)|
+                    (TRANSPORT_LINE_SURFACE_CODE %in% unknownTypes & 
+                       TRANSPORT_LINE_TYPE_CODE %in% LowUseUsurf))
 Roads<-subset(IntRds, 
-              !(TRANSPORT_LINE_TYPE_CODE %in% notRoads))
+              !(TRANSPORT_LINE_TYPE_CODE %in% notRoads)|
+                (TRANSPORT_LINE_SURFACE_CODE %in% NoLongerRoads))
 writeOGR(obj=Roads, dsn=dataOutDir, layer="Roads", driver="ESRI Shapefile", overwrite_layer=TRUE) 
 #Roads <- readOGR(dsn=dataOutDir, layer="Roads")
 
