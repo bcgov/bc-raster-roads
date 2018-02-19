@@ -10,7 +10,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-require(rgdal)
 library(sf)
 library(dplyr)
 
@@ -33,24 +32,19 @@ dir.create(DataDir, showWarnings = FALSE)
 
 # List feature classes in the geodatabase
 Rd_gdb <- list.files(file.path(DataDir, "DRA"), pattern = ".gdb", full.names = TRUE)[1]
-fc_list <- ogrListLayers(Rd_gdb)
-print(fc_list)
+fc_list <- st_layers(Rd_gdb)
 
-# Read TRANSPORT_LINE layer which has the actual lines
-IntRds <- readOGR(dsn = Rd_gdb, layer = "TRANSPORT_LINE")
-
-# Also read as sf
+# Read as sf and calculate road lengths
 roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE") %>% 
   mutate(rd_len = st_length(.))
 
-# Write metadata from gdb to csv files
+# Write metadata from gdb to csv files (need ogr2ogr on the command line)
 lapply(fc_list[grepl("CODE$", fc_list)], function(l) {
   system(paste0("ogr2ogr -f CSV data/", l, ".csv ", Rd_gdb, " ", l))
 })
 
 # Determine the FC extent, projection, and attribute information
-summary(IntRds)
+summary(roads_sf)
 
 dir.create("tmp")
-saveRDS(IntRds, file = "tmp/IntRds.rds")
 saveRDS(roads_sf, file = "tmp/DRA_roads_sf.rds")
