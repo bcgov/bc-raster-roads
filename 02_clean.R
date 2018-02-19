@@ -75,41 +75,42 @@ Tdf <- cbind(
 #'
 #' @param bb a bounding box or list with xmin, xmax, ymin, ymax elements
 #' @param crs a number with epsg code or proj4string
-bb_to_polygon <- function(bb, crs) {
-  st_sfc(st_polygon(list(rbind(
-    c(bb$xmin, bb$ymin),
-    c(bb$xmin, bb$ymax),
-    c(bb$xmax, bb$ymax),
-    c(bb$xmax, bb$ymin),
-    c(bb$xmin, bb$ymin)
-  ))), crs = crs)
+bb_to_sfc_poly <- function(bb, crs) {
+  if (!inherits(bb, "bbox")) {
+    bb <- st_bbox(c(
+      xmin = bb$xmin, 
+      xmax = bb$xmax,
+      ymin = bb$ymin,
+      ymax = bb$ymax
+    ))
+  }
+  st_as_sfc(bb)
 }
 
 # Create a polygon grid of size nTileRows * nTileRows
-# by creating a polygon for each xmin, xmax, ymin, ymax
+# by creating a polygon for each xmin, xmax, ymin, ymax, 
+# convert each into an sf object, and combine: 
 # and combining them
-# First row:
-grid_sf <- st_sf(id = 1, geometry = bb_to_polygon(Tdf[1, ], 3005))
-# Then add the rest:
-for (i in 2:nrow(Tdf)) {
-  e <- st_sf(id = i, geometry = bb_to_polygon(Tdf[i, ], 3005))
-  grid_sf <- rbind(grid_sf, e)
-}
+sf_list <- lapply(seq_len(nrow(Tdf)), function(i) {
+  st_sf(id = i, bb_to_sfc_poly(Tdf[i, ], 3005))
+})
+
+prov_grid <- do.call("rbind", sf_list)
 
 # Plot grid and Prov bounding box just to check
-plot(grid_sf)
+plot(prov_grid)
 ProvPlt <- st_as_sfc(as(raster::extent(ProvRast), "SpatialLines"), crs = 3005)
 plot(ProvPlt, add = TRUE, col = "red")
 
 # Chop the roads up by the 10x10 tile grid
-roads_gridded <- st_intersection(roads_sf, grid_sf)
+roads_gridded <- st_intersection(roads_sf, prov_grid)
 
 #Loop through each tile and calculate road density for each 1ha cell
 registerDoMC(3)
 
 ptm <- proc.time()
-foreach(i = grid_sf$id) %dopar% {
-  Pcc <- raster::extent(grid_sf[grid_sf$id == i, ])
+foreach(i = prov_grid$id) %dopar% {
+  Pcc <- raster::extent(prov_grid[prov_grid$id == i, ])
   DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
                           resolution = c(100, 100), vals = 0, ext = Pcc)
   
