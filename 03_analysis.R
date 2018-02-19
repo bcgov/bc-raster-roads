@@ -23,21 +23,9 @@ dir.create("tmp", showWarnings = FALSE)
 
 roadsIN<-Roads
 
-###For Testing in smaller areas:
-MoRast<-raster(nrows=5899, ncols=4619, xmn=634387.5, xmx=1096287.5, ymn=777687.5,ymx=1367587.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0",res=c(100,100),vals=0)
-#Still to large for testing shrink to .25M cells
-e<-extent(MoRast)
-MClipRast<-c(e[1]+300000,e[2]-100000,e[3]+300000,e[4]-250000)
-MoRds<-crop(Roads, MClipRast)
-MoRdsPvd<-crop(pavedRds, MClipRast)
-
-
-#roadsIN<-MoRds
 #Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
 ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=173787.5,ymx=1748187.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
                  ,res=c(100,100),vals=0)
-#ProvRast <- raster(extent(roadsIN), crs=projection(roadsIN),res=c(100,100),vals=0)
-
 #---------------------
 #split Province into tiles for processing
 #identify the extents for each tile and use to clip for processing
@@ -125,38 +113,6 @@ for (i in 1:(nTileRows*nTileRows)) {
 }
 
 #Memory functions - object.size(Roads), gc(), rm()
-
-#code to read rasters from a directory and mosaic - faster than merge or mosaic
-#Code snipet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
-
-library(gdalUtils)
-#Build list of all raster files you want to join (in your current working directory).
-Tiles<- list.files(path=paste(tileOutDir,sep=''), pattern='rdTile_')
-
-#Make a template raster file to build onto
-template<-ProvRast
-writeRaster(template, file=paste(tileOutDir,"RoadDensR.tif",sep=''), format="GTiff",overwrite=TRUE)
-#Merge all raster tiles into one big raster.
-RoadDensR<-mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
-                          dst_dataset=paste(tileOutDir,"RoadDensR.tif",sep=''),
-                          of="GTiff",
-                          output_Raster=TRUE,
-                          output.vrt=TRUE)
-gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
-#Plot to test
-plot(RoadDensR)
-#lines(roadsIN,col='red')
-proc.time() - ptm 
-
-###Test small raster for testing
-
-poly <- MoRds
-#poly<-MoRdsPvd
-r<-raster(extent(MClipRast), crs=projection(OpenRoads),res=c(100,100),vals=0)
-extent(r) <- extent(poly)
-rp <- rasterize(poly, r, 'ROAD_SURFACE')
-
-
 
 
 
