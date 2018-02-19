@@ -40,6 +40,15 @@ dir.create(DataDir, showWarnings = FALSE)
 # IntRds <- readRDS("tmp/IntRds.rds")
 roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
 
+# Not roads - Ferry routes, non motorized Trails, proposed
+notRoads <- c("F","FP","FR","RP","T", "TD", "RWA") 
+# No longer roads - decomissioned and overgrown
+NoLongerRoads <- c("D","O")
+
+roads_sf <- roads_sf %>% 
+  filter(!TRANSPORT_LINE_TYPE_CODE %in% notRoads, 
+         !TRANSPORT_LINE_SURFACE_CODE %in% NoLongerRoads)
+
 # roadsIN <- IntRds
 # Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
 ProvRast <- raster(
@@ -175,4 +184,4 @@ plot(RoadDensR)
 # Check total sum of road lengths and compare to total sum from vector object
 rast_sum_len <- cellStats(RoadDensR, "sum")
 as.numeric(sum(roads_sf$rd_len)) - rast_sum_len
-# 250 km - pretty good!
+# 250 km difference - pretty good!
