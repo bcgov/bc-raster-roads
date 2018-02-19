@@ -46,7 +46,8 @@ ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0
 )
-#ProvRast <- raster(extent(roadsIN), crs=projection(roadsIN),res=c(100,100),vals=0)
+#ProvRast <- raster(extent(roads_sf), crs = st_crs(roads_sf)$proj4string,
+#                   resolution = c(100, 100), vals = 0)
 
 #---------------------
 #split Province into tiles for processing
@@ -169,6 +170,8 @@ RoadDensR <- mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
 gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
 #Plot to test
 plot(RoadDensR)
-#lines(roadsIN,col='red')
-proc.time() - ptm
 
+# Check total sum of road lengths and compare to total sum from vector object
+rast_sum_len <- cellStats(RoadDensR, "sum")
+as.numeric(sum(roads_sf$rd_len)) - rast_sum_len
+# 250 km - pretty good!
