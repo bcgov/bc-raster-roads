@@ -58,6 +58,7 @@ ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
   crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0
 )
+
 #ProvRast <- raster(extent(roads_sf), crs = st_crs(roads_sf)$proj4string,
 #                   resolution = c(100, 100), vals = 0)
 
@@ -145,14 +146,6 @@ foreach(i = prov_grid$id) %dopar% {
     roadlengthT[as.integer(names(x))] <- x
     roadlengthT[is.na(roadlengthT)] <- 0
     
-    # Code snippet for using spatstat package approach to calculating 1ha raster cell road density
-    # originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html
-    # roadlengthT1 <- as.psp(as(TilePoly, "Spatial")) %>%
-    #   pixellate.psp(eps = 100)
-    # 
-    # roadlengthT2 <- raster(roadlengthT1, crs = st_crs(roads_sf)$proj4string)
-    # roadlengthT3 <- extend(roadlengthT2, Pcc, value = 0)
-    # roadlengthT <- resample(roadlengthT3, DefaultRaster, method = "ngb")
   } else {
     roadlengthT <- DefaultRaster
   }
