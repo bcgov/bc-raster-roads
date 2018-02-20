@@ -26,8 +26,8 @@ IntRds<-RdsLoad
 Rd_Tbl<-count(IntRds@data,vars=c('TRANSPORT_LINE_SURFACE_CODE','TRANSPORT_LINE_TYPE_CODE'))
 write_csv(Rd_Tbl, "out/Rd_x_tbl.csv")
 
-# Not roads - Ferry routes, non motorized Trails, proposed
-notRoads<-c("F","FP","FR","RP","T", "TD", "RWA") 
+# Not roads - Ferry routes, non motorized Trails, proposed, pedestrian mall
+notRoads<-c("F","FP","FR","RP","T", "TD", "RWA","RPM") 
 # No longer roads - decomissioned and overgrown
 NoLongerRoads<-c("D","O")
 
