@@ -10,19 +10,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-library(sf)
-library(dplyr)
-
-OutDir<-('out/')
-figsOutDir<-paste(OutDir,'figures/',sep='')
-dataOutDir<-paste(OutDir,'data/',sep='')
-tileOutDir<-paste(dataOutDir,'tile/',sep='')
-DataDir <- "data"
-dir.create(file.path(OutDir), showWarnings = FALSE)
-dir.create(file.path(figsOutDir), showWarnings = FALSE)
-dir.create(file.path(dataOutDir), showWarnings = FALSE)
-dir.create(file.path(tileOutDir), showWarnings = FALSE)
-dir.create(DataDir, showWarnings = FALSE)
+# Source the common header file that loads packages and sets directories etc.
+source("header.R")
 
 # Raw road file 
 # DRA from BCDC:
