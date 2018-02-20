@@ -104,7 +104,7 @@ bb_to_sfc_poly <- function(bb, crs) {
 # convert each into an sf object, and combine: 
 # and combining them
 sf_list <- lapply(seq_len(nrow(Tdf)), function(i) {
-  st_sf(id = i, bb_to_sfc_poly(Tdf[i, ], 3005))
+  st_sf(id = i, bb_to_sfc_poly(Tdf[i, ], crs = 3005), crs = 3005)
 })
 
 prov_grid <- do.call("rbind", sf_list)
@@ -114,7 +114,8 @@ plot(prov_grid)
 ProvPlt <- st_as_sfc(as(raster::extent(ProvRast), "SpatialLines"), crs = 3005)
 plot(ProvPlt, add = TRUE, col = "red")
 
-# Chop the roads up by the 10x10 tile grid
+# Chop the roads up by the 10x10 tile grid. This takes a while but you only have to 
+# do it once.
 roads_gridded <- st_intersection(roads_sf, prov_grid)
 
 #Loop through each tile and calculate road density for each 1ha cell
