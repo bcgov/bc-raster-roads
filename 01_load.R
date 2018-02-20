@@ -17,18 +17,20 @@ OutDir<-('out/')
 figsOutDir<-paste(OutDir,'figures/',sep='')
 dataOutDir<-paste(OutDir,'data/',sep='')
 tileOutDir<-paste(dataOutDir,'tile/',sep='')
+DataDir <- "data"
 dir.create(file.path(OutDir), showWarnings = FALSE)
 dir.create(file.path(figsOutDir), showWarnings = FALSE)
 dir.create(file.path(dataOutDir), showWarnings = FALSE)
 dir.create(file.path(tileOutDir), showWarnings = FALSE)
-DataDir <- "data"
 dir.create(DataDir, showWarnings = FALSE)
 
-## DRA from BCDC: 
-## https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-master-partially-attributed-roads/resource/a06a2e11-a0b1-41d4-b857-cb2770e34fb0
-# download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip",
-#               destfile = file.path(DataDir, "dra.gdb.zip"))
-# unzip(file.path(DataDir, "dra.gdb.zip"), exdir = file.path(DataDir, "DRA"))
+# Raw road file 
+# DRA from BCDC:
+# https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-master-partially-attributed-roads/resource/a06a2e11-a0b1-41d4-b857-cb2770e34fb0
+RdsZip <- 'dra.gdb.zip'
+download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip",
+              destfile = file.path(DataDir, RdsZip))
+unzip(file.path(DataDir, RdsZip), exdir = file.path(DataDir, "DRA"))
 
 # List feature classes in the geodatabase
 Rd_gdb <- list.files(file.path(DataDir, "DRA"), pattern = ".gdb", full.names = TRUE)[1]
@@ -46,5 +48,6 @@ lapply(fc_list[grepl("CODE$", fc_list)], function(l) {
 # Determine the FC extent, projection, and attribute information
 summary(roads_sf)
 
+# Save as RDS for quicker access later.
 dir.create("tmp")
 saveRDS(roads_sf, file = "tmp/DRA_roads_sf.rds")
