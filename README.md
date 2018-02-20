@@ -12,10 +12,21 @@ The Digital Road Atlas is a [single, authoritative source of road data for the P
 
 ### Usage
 
-There are two core scripts that are required for the road density analysis, they need to be run in order:
+There are four core scripts that are required for the road density analysis, they need to be run in order:
 
 -   01\_load.R
--   02\_analysis.R
+-   02\_clean.R
+-   03\_analysis.R
+-   04\_output.R
+
+Most packages used in the analysis can be installed from CRAN using `install.packages()`, but you will need to install [`envreportutils`](https://github.com/bcgov/envreportutils) using `remotes`:
+
+``` r
+install.packages("remotes") # if you don't already have it installed
+
+library(remotes)
+install_github("bcgov/envreportutils")
+```
 
 ### Project Status
 
