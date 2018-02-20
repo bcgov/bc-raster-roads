@@ -18,13 +18,17 @@
 # require(spatstat)
 # require(maptools)
 # require(rgeos)
-require(raster)
-require(dplyr)
-require(sf)
+
+
+# Spatial packages
+library(sf)
+library(raster)
+library(dplyr)
+library(spex) # fast conversion of raster to polygons
+library(gdalUtils)
+# For parallel processing tiles to rasters
 library(foreach)
 library(doMC)
-library(spex)
-library(gdalUtils)
 
 OutDir<-('out/')
 figsOutDir<-paste(OutDir,'figures/',sep='')
@@ -40,7 +44,15 @@ dir.create(DataDir, showWarnings = FALSE)
 # IntRds <- readRDS("tmp/IntRds.rds")
 roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
 
-# roadsIN <- IntRds
+# Not roads - Ferry routes, non motorized Trails, proposed
+notRoads <- c("F","FP","FR","RP","T", "TD", "RWA") 
+# No longer roads - decomissioned and overgrown
+NoLongerRoads <- c("D","O")
+
+roads_sf <- roads_sf %>% 
+  filter(!TRANSPORT_LINE_TYPE_CODE %in% notRoads, 
+         !TRANSPORT_LINE_SURFACE_CODE %in% NoLongerRoads)
+
 # Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
 ProvRast <- raster(
   nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
@@ -63,13 +75,13 @@ nTileRows <- 10
 x_borders <- seq(ProvBB$xmin, ProvBB$xmax, length.out = nTileRows + 1)
 y_borders <- seq(ProvBB$ymin, ProvBB$ymax, length.out = nTileRows + 1)
 
-# Use x and y borders to create a data.frame of xmin, xmax, ymin, ymax
+# Use x and y borders to create a data.frame of xmin, xmax, ymin, ymax.
 Tdf <- cbind(
   expand.grid(xmin = x_borders[1:nTileRows],
               ymin = y_borders[1:nTileRows]), 
   expand.grid(xmax = x_borders[2:(nTileRows + 1)], 
               ymax = y_borders[2:(nTileRows + 1)])
-)[, c("xmin", "xmax", "ymin", "ymax")]
+)
 
 #' Function to convert a bounding box to a sfc polygon object
 #'
@@ -175,4 +187,4 @@ plot(RoadDensR)
 # Check total sum of road lengths and compare to total sum from vector object
 rast_sum_len <- cellStats(RoadDensR, "sum")
 as.numeric(sum(roads_sf$rd_len)) - rast_sum_len
-# 250 km - pretty good!
+# 250 km difference - pretty good!
