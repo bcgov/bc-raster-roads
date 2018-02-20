@@ -32,5 +32,8 @@ gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
 #Plot to test
 plot(RoadDensR)
 #lines(roadsIN,col='red')
-proc.time() - ptm 
 
+# Check total sum of road lengths and compare to total sum from vector object
+rast_sum_len <- cellStats(RoadDensR, "sum")
+as.numeric(sum(roads_sf$rd_len)) - rast_sum_len
+# ~ 250 km difference - pretty good!

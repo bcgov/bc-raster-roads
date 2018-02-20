@@ -10,109 +10,120 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-require(sp)
-require(raster)
-require(rgdal)
-require(spatstat)
-require(maptools)
-require(rgeos)
-require(RColorBrewer)
-require(dplyr)
+library(dplyr)
+# Spatial packages
+library(sf)
+library(raster)
+library(spex) # fast conversion of raster to polygons
+# For parallel processing tiles to rasters
+library(foreach)
+library(doMC)
 
-dir.create("tmp", showWarnings = FALSE)
+roads_sf <- readRDS("tmp/DRA_roads_sf_clean.rds")
 
-roadsIN<-Roads
+# Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
+ProvRast <- raster(
+  nrows = 15744, ncols = 17216, xmn = 159587.5, xmx = 1881187.5, ymn = 173787.5, ymx = 1748187.5, 
+  crs = st_crs(roads_sf)$proj4string, resolution = c(100, 100), vals = 0
+)
 
-#Set up Provincial raster based on hectares BC extent, 1ha resolution and projection
-ProvRast<-raster(nrows=15744, ncols=17216, xmn=159587.5, xmx=1881187.5, ymn=173787.5,ymx=1748187.5,crs="+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-                 ,res=c(100,100),vals=0)
+#ProvRast <- raster(extent(roads_sf), crs = st_crs(roads_sf)$proj4string,
+#                   resolution = c(100, 100), vals = 0)
+
 #---------------------
 #split Province into tiles for processing
 #identify the extents for each tile and use to clip for processing
 
-#extents of input layer
-ProvBB<-bbox(ProvRast)
+# extent of input layer
+ProvBB <- st_bbox(ProvRast)
 
 #Number of tile rows, number of columns will be the same
-nTileRows<-10
+nTileRows <- 10
 
-#Determine the seed extents for generating the tile extents
-#Code modified from https://stackoverflow.com/questions/38851909/divide-bounding-box-extent-into-several-parts-in-r
+# Tile borders by making a sequence from bbox
+x_borders <- seq(ProvBB$xmin, ProvBB$xmax, length.out = nTileRows + 1)
+y_borders <- seq(ProvBB$ymin, ProvBB$ymax, length.out = nTileRows + 1)
 
-x <- seq(1:nTileRows)
-Tseed <- data.frame(x)
-xFactor <- (ProvBB[3] - ProvBB[1])/length(x)
-yFactor <- (ProvBB[4] - ProvBB[2])/length(x)
-Tseed$xCH <- Tseed$x*xFactor + ProvBB[1]
-Tseed$yCH <- Tseed$x*yFactor + ProvBB[2]
+# Use x and y borders to create a data.frame of xmin, xmax, ymin, ymax.
+Tdf <- cbind(
+  expand.grid(xmin = x_borders[1:nTileRows],
+              ymin = y_borders[1:nTileRows]), 
+  expand.grid(xmax = x_borders[2:(nTileRows + 1)], 
+              ymax = y_borders[2:(nTileRows + 1)])
+)
 
-#generate data.frame of tile extents based on bounding box
-Tdf <- data.frame(xmin=double(),xmax=double(),ymin=double(),ymax=double()) 
-i<-1
-for (i in 1:nTileRows) {
-  for (j in 1:nTileRows) {
-    Tdfn<-data.frame(xmin=Tseed$xCH[i]-xFactor,xmax=Tseed$xCH[i],ymin=Tseed$yCH[j]-yFactor,ymax=Tseed$yCH[j])
-    Tdf<-rbind(Tdf, Tdfn)
-    # rbind(df, setNames(de, names(df)))
+#' Function to convert a bounding box to a sfc polygon object
+#'
+#' @param bb a bounding box or list with xmin, xmax, ymin, ymax elements
+#' @param crs a number with epsg code or proj4string
+bb_to_sfc_poly <- function(bb, crs) {
+  if (!inherits(bb, "bbox")) {
+    bb <- st_bbox(c(
+      xmin = bb$xmin, 
+      xmax = bb$xmax,
+      ymin = bb$ymin,
+      ymax = bb$ymax
+    ))
   }
+  st_as_sfc(bb)
 }
 
-#Plot Province bbox to check
-ProvPlt <- as(raster::extent(ProvBB), "SpatialPolygons")
-proj4string(ProvPlt) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-plot(ProvPlt)
+# Create a polygon grid of size nTileRows * nTileRows
+# by creating a polygon for each xmin, xmax, ymin, ymax, 
+# convert each into an sf object, and combine: 
+# and combining them
+sf_list <- lapply(seq_len(nrow(Tdf)), function(i) {
+  st_sf(id = i, bb_to_sfc_poly(Tdf[i, ], crs = 3005), crs = 3005)
+})
 
-#Add each tile as a check
-i<-1
-for (i in 1:(nTileRows*nTileRows)) {
-  Pc<-as.vector(as.matrix(Tdf[i,]))
-  Pcc<-raster::extent(Pc)
-  e <- as(Pcc, "SpatialPolygons")
-  proj4string(e) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-  lines(e)
-}
-lines(ProvPlt,col='red')
+prov_grid <- do.call("rbind", sf_list)
 
-#Loop through each tile and generate road density raster
-#Function that takes a shape file and bounding box and generates a clipped shape file
-#code snippet based on: https://www.rdocumentation.org/packages/stplanr/versions/0.1.9
+# Plot grid and Prov bounding box just to check
+plot(prov_grid)
+ProvPlt <- st_as_sfc(ProvBB, crs = 3005)
+plot(ProvPlt, add = TRUE, col = NA, border = "red")
 
-gClip <- function(shp, bb){
-  if(class(bb) == "matrix") 
-    b_poly <- as(extent(as.vector(t(bb))), "SpatialPolygons")
-  else 
-    b_poly <- as(extent(bb), "SpatialPolygons")
-  proj4string(b_poly) <- "+proj=aea +lat_1=50 +lat_2=58.5 +lat_0=45 +lon_0=-126 +x_0=1000000 +y_0=0 +datum=NAD83 +units=m +no_defs +ellps=GRS80 +towgs84=0,0,0"
-  gIntersection(shp, b_poly, byid = T, drop_lower_td=TRUE)#last parameter to fix gIntersect error
-}
+# Chop the roads up by the 10x10 tile grid. This takes a while but you only have to 
+# do it once.
+roads_gridded <- st_intersection(roads_sf, prov_grid)
 
-#Loop through each tile and calculate road density for each 1ha cell
+# Loop through each tile and calculate road density for each 1ha cell.
+# Choose number of cores to use in parallel carefully... too many and
+# it will fill up memory and grind to a halt.
+registerDoMC(3)
+
 ptm <- proc.time()
-i<-1
-for (i in 1:(nTileRows*nTileRows)) {
-  Pc<-as.vector(as.matrix(Tdf[i,]))
-  Pcc<-raster::extent(Pc)
-  TilePoly <- gClip(roadsIN, Pcc)
-  DefaultRaster<-raster(Pcc, crs=projection(roadsIN), res=c(100,100),vals=0,ext=Pcc)
+foreach(i = prov_grid$id) %dopar% {
+  Pcc <- raster::extent(prov_grid[prov_grid$id == i, ])
+  DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
+                          resolution = c(100, 100), vals = 0, ext = Pcc)
   
-  #Code snippet for using spatstat package approach to calculating 1ha raster cell road density
-  #originally posted at: https://stat.ethz.ch/pipermail/r-sig-geo/2015-March/022483.html  
-  if(length(TilePoly)>0) {
-    roadlengthT1 <- as.psp(as(TilePoly, 'SpatialLines')) %>%
-      pixellate.psp(eps=100)
+  ## Use the roads layer that has already been chopped into tiles
+  TilePoly <- roads_gridded[roads_gridded$id == i, ]
+  
+  if (nrow(TilePoly) > 0) {
     
-    roadlengthT2<-raster(roadlengthT1,crs=projection(roadsIN))
-    roadlengthT3 <- extend(roadlengthT2, Pcc, value=0)
-    roadlengthT <- resample(roadlengthT3,DefaultRaster,method='ngb')
-  } else {  
-    roadlengthT<-DefaultRaster
+    ##  This calculates lengths more directly than psp method...
+    DefaultRaster[] <- 1:ncell(DefaultRaster)
+    rsp <- spex::polygonize(DefaultRaster) # spex pkg for quickly making polygons from raster
+    # Split tile poly into grid by the polygonized raster
+    rp1 <- st_intersection(TilePoly[,1], rsp)
+    rp1$rd_len <- as.numeric(st_length(rp1)) # road length in m for each grid cell
+    # Sum of road lengths in each grid cell
+    x <- tapply(rp1$rd_len, rp1$layer, sum, na.rm = TRUE)
+    # Create raster and populate with sum of road lengths
+    roadlengthT <- raster(DefaultRaster)
+    roadlengthT[as.integer(names(x))] <- x
+    roadlengthT[is.na(roadlengthT)] <- 0
+    
+  } else {
+    roadlengthT <- DefaultRaster
   }
-  writeRaster(roadlengthT, filename=paste(tileOutDir,"rdTile_",i,".tif",sep=''), format="GTiff", overwrite=TRUE)
-  print(paste(tileOutDir,"rdTile_",i,".tif",sep=''))
+  writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
+  print(paste(tileOutDir, "rdTile_", i, ".tif", sep = ""))
+  rm(Pcc, DefaultRaster, TilePoly, rsp, rp1, x, roadlengthT)
   gc()
 }
+proc.time() - ptm
 
-#Memory functions - object.size(Roads), gc(), rm()
-
-
-
+#Memory functions - object.size(roadsIN), gc(), rm()
