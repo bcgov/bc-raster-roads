@@ -58,4 +58,4 @@ Please note that this project is released with a [Contributor Code of Conduct](C
     See the License for the specific language governing permissions and
     limitations under the License.
 
-This repository is maintained by [ENVEcosystems](https://github.com/orgs/bcgov/teams/envecosystems/members).
+This repository is maintained by [ENVEcosystems](https://github.com/orgs/bcgov/teams/envecosystems/members) and [Environmental Reporting BC](http://www2.gov.bc.ca/gov/content?id=FF80E0B985F245CEA62808414D78C41B). Click [here](https://github.com/bcgov/EnvReportBC-RepoList) for a complete list of Environmental Reporting BC repositories on GitHub.
