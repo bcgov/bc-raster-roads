@@ -23,7 +23,7 @@ library(R.utils) # capitalize
 library(foreach)
 library(doMC)
 
-source("R/functions.R")
+source("R/functions.R") # make_tiles() function
 
 ## Ensure you have run 01_load.R before you run this
 ## Load data files from local folders
