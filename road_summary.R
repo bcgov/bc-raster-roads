@@ -58,14 +58,17 @@ write_csv(length_by_type, "out/roads_by_type_summary.csv")
 write_csv(length_by_surface, "out/roads_by_surface_summary.csv")
 
 ## Filter out some transport line types & surfaces
-exclude_surface <- c("O", "B") ## overgrown &  boat, also consider decommisioned?
-exclude_type <- c("T", "TD", "FR", "F", "FP") ## trail, trail demographic, ferry, ferry resource, ferry passenger, also consider TR, RP and TS?
+exclude_surface <- c("O", "B", "D") ## overgrown, boat and decommisioned
+exclude_type <- c("T", "TD", "FR", "F", "FP", "RP", "RWA", "RPM") ## ferry routes, non-motorized trails, proposed, pedestrian mall
 
 soe_roads <- roads_sf %>% 
   filter(!TRANSPORT_LINE_TYPE_CODE %in% exclude_type) %>% 
-  filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface) 
+  filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface) %>% 
+  st_intersection(bc_bound_hres()) ## clip to bc boundary
 
-## TODO: NEED to clip to a BC Boundary as some "P" roads go beyond borders.
+## Save soe_roads sf object to RDS & write out 
+saveRDS(soe_roads, file = "tmp/soe_roads_sf.rds")
+write_sf(soe_roads, "out/soe_roads.gpkg")
 
 soe_roads_summary <-  soe_roads %>% 
   st_set_geometry(NULL) %>%
