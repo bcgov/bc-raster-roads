@@ -31,7 +31,9 @@ roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
 road_types <- read_csv("data/TRANSPORT_LINE_TYPE_CODE.csv")
 road_surfaces <- read_csv("data/TRANSPORT_LINE_SURFACE_CODE.csv")
 
-## clip to bc boundary
+
+# clip to bc boundary -----------------------------------------------------
+
 bc <- bc_bound_hres()
 
 ## bounding box for B.C.
@@ -73,6 +75,8 @@ roads_clipped <- rbind(interior_roads, edge_roads_clipped) %>%
 
 # Remove intermediate objects
 rm(edge_roads, edge_roads_clipped, edge_roads_clipped_list, interior_roads, roads_gridded)
+
+# Summaries ---------------------------------------------------------------
 
 ## Sum of road segment lengths
 total_length_roads <- units::set_units(sum(roads_clipped$rd_len), km) %>% 
@@ -119,6 +123,8 @@ soe_roads_summary <-  soe_roads %>%
   select(TRANSPORT_LINE_SURFACE_CODE, DESCRIPTION, total_length) %>% 
   mutate(DESCRIPTION = R.utils::capitalize(DESCRIPTION))
 soe_roads_summary
+
+# Plotting ----------------------------------------------------------------
 
 ## Bar chart of roads by surface type
 ## creating a colour brewer palette from http://colorbrewer2.org/
