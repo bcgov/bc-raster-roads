@@ -12,6 +12,7 @@
 
 # Source the common header file that loads packages and sets directories etc.
 source("header.R")
+source("R/functions.R")
 
 library(raster)
 library(spex) # fast conversion of raster to polygons
