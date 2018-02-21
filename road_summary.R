@@ -20,25 +20,67 @@ library(RColorBrewer) # colour palette
 library(envreportutils) # theme_soe()
 library(patchwork) # multiplot
 library(R.utils) # capitalize
+library(foreach)
+library(doMC)
+
+source("R/functions.R")
 
 ## Ensure you have run 01_load.R before you run this
 ## Load data files from local folders
 roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
 road_types <- read_csv("data/TRANSPORT_LINE_TYPE_CODE.csv")
 road_surfaces <- read_csv("data/TRANSPORT_LINE_SURFACE_CODE.csv")
-  
-## Add a new colomn with total length of each road segment
-roads_sf <- 
-  roads_sf %>%
+
+## clip to bc boundary
+bc <- bc_bound_hres()
+
+## bounding box for B.C.
+ProvBB <- st_bbox(bc)
+
+# Make a grid of tiles to chunk out processing into smaller pieces
+prov_grid <- make_tiles(ProvBB, 10)
+
+# Chop the bc boundary up into tiles using prov_grid
+bc_gridded <- st_intersection(st_cast(bc, "POLYGON"), prov_grid) %>% 
+  mutate(grid_area = as.numeric(st_area(.)))
+
+# Get the edge grids - those with an area less than a full square (with a 10m2 tolerance)
+edge_grids <- unique(bc_gridded$tile_id[bc_gridded$grid_area < (round(max(bc_gridded$grid_area)) - 10)])
+
+# Plot just bc_bound edge grids to check
+plot(bc_gridded[bc_gridded$tile_id %in% edge_grids, "grid_area"])
+
+# Chop the roads up by the same 10x10 tile grid. This takes a while
+roads_gridded <- st_intersection(roads_sf, prov_grid)
+
+# Split into two data frames - those grids on the edge and those in the interior.
+interior_roads <- roads_gridded[!roads_gridded$tile_id %in% edge_grids, ]
+edge_roads <- roads_gridded[roads_gridded$tile_id %in% edge_grids, ]
+
+# Map over only edge tiles and intersect roads with prov boundary in parallel
+registerDoMC(3)
+edge_roads_clipped_list <- foreach(id = edge_grids) %dopar% {
+  st_intersection(edge_roads[edge_roads$tile_id == id, ], 
+                  st_geometry(bc_gridded[bc_gridded$tile_id == id, ]))
+}
+
+# Recombine list of tiles into one sf object
+edge_roads_clipped <- do.call("rbind", edge_roads_clipped_list)
+
+# Combine clipped edge roads with interior and recalculate lenghts
+roads_clipped <- rbind(interior_roads, edge_roads_clipped) %>% 
   mutate(rd_len = st_length(.))
 
+# Remove intermediate objects
+rm(edge_roads, edge_roads_clipped, edge_roads_clipped_list, interior_roads, roads_gridded)
+
 ## Sum of road segment lengths
-total_length_roads <- units::set_units(sum(roads_sf$rd_len), km) %>% 
+total_length_roads <- units::set_units(sum(roads_clipped$rd_len), km) %>% 
   round(digits = 0) %>% 
   scales::comma()
 
 ## Sum of ALL road segment lengths by TRANSPORT_LINE_TYPE_CODE
-length_by_type <- roads_sf %>%
+length_by_type <- roads_clipped %>%
   st_set_geometry(NULL) %>%
   group_by(TRANSPORT_LINE_TYPE_CODE) %>%
   summarise(total_length = as.numeric(units::set_units(sum(rd_len), km))) %>%
@@ -46,7 +88,7 @@ length_by_type <- roads_sf %>%
   select(TRANSPORT_LINE_TYPE_CODE, DESCRIPTION, total_length)
 
 ## Sum of ALL road segment lengths by TRANSPORT_LINE_SURFACE_CODE
-length_by_surface <- roads_sf %>%
+length_by_surface <- roads_clipped %>%
   st_set_geometry(NULL) %>%
   group_by(TRANSPORT_LINE_SURFACE_CODE) %>%
   summarise(total_length = as.numeric(units::set_units(sum(rd_len), km))) %>%
@@ -61,10 +103,9 @@ write_csv(length_by_surface, "out/roads_by_surface_summary.csv")
 exclude_surface <- c("O", "B", "D") ## overgrown, boat and decommisioned
 exclude_type <- c("T", "TD", "FR", "F", "FP", "RP", "RWA", "RPM") ## ferry routes, non-motorized trails, proposed, pedestrian mall
 
-soe_roads <- roads_sf %>% 
+soe_roads <- roads_clipped %>% 
   filter(!TRANSPORT_LINE_TYPE_CODE %in% exclude_type) %>% 
-  filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface) %>% 
-  st_intersection(bc_bound_hres()) ## clip to bc boundary
+  filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface)
 
 ## Save soe_roads sf object to RDS & write out 
 saveRDS(soe_roads, file = "tmp/soe_roads_sf.rds")
@@ -88,8 +129,6 @@ colrs <- c("D" = "#e31a1c",
            "R" = "#33a02c",
            "S" = "#fdbf6f",
            "U" = "#ffff99")
-
-names(colrs) <- unique(soe_roads_summary$TRANSPORT_LINE_SURFACE_CODE)
 
 soe_roads_sum_chart <- soe_roads_summary %>% 
   ggplot(aes(fct_reorder(DESCRIPTION, total_length), total_length/1000)) +
