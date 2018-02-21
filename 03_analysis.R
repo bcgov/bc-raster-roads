@@ -32,7 +32,6 @@ ProvRast <- raster(
 
 #---------------------
 #split Province into tiles for processing
-#identify the extents for each tile and use to clip for processing
 
 # extent of input layer
 ProvBB <- st_bbox(ProvRast)
@@ -40,43 +39,7 @@ ProvBB <- st_bbox(ProvRast)
 #Number of tile rows, number of columns will be the same
 nTileRows <- 10
 
-# Tile borders by making a sequence from bbox
-x_borders <- seq(ProvBB$xmin, ProvBB$xmax, length.out = nTileRows + 1)
-y_borders <- seq(ProvBB$ymin, ProvBB$ymax, length.out = nTileRows + 1)
-
-# Use x and y borders to create a data.frame of xmin, xmax, ymin, ymax.
-Tdf <- cbind(
-  expand.grid(xmin = x_borders[1:nTileRows],
-              ymin = y_borders[1:nTileRows]), 
-  expand.grid(xmax = x_borders[2:(nTileRows + 1)], 
-              ymax = y_borders[2:(nTileRows + 1)])
-)
-
-#' Function to convert a bounding box to a sfc polygon object
-#'
-#' @param bb a bounding box or list with xmin, xmax, ymin, ymax elements
-#' @param crs a number with epsg code or proj4string
-bb_to_sfc_poly <- function(bb, crs) {
-  if (!inherits(bb, "bbox")) {
-    bb <- st_bbox(c(
-      xmin = bb$xmin, 
-      xmax = bb$xmax,
-      ymin = bb$ymin,
-      ymax = bb$ymax
-    ))
-  }
-  st_as_sfc(bb)
-}
-
-# Create a polygon grid of size nTileRows * nTileRows
-# by creating a polygon for each xmin, xmax, ymin, ymax, 
-# convert each into an sf object, and combine: 
-# and combining them
-sf_list <- lapply(seq_len(nrow(Tdf)), function(i) {
-  st_sf(id = i, bb_to_sfc_poly(Tdf[i, ], crs = 3005), crs = 3005)
-})
-
-prov_grid <- do.call("rbind", sf_list)
+prov_grid <- make_tiles(ProvBB, nTileRows)
 
 # Plot grid and Prov bounding box just to check
 plot(prov_grid)
