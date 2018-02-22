@@ -37,6 +37,5 @@ lapply(fc_list[grepl("CODE$", fc_list)], function(l) {
 # Determine the FC extent, projection, and attribute information
 summary(roads_sf)
 
-# Save as RDS for quicker access later.
-dir.create("tmp")
+# Save as RDS for quicker access later
 saveRDS(roads_sf, file = "tmp/DRA_roads_sf.rds")
