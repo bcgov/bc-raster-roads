@@ -78,7 +78,12 @@ roads_clipped <- rbind(interior_roads, edge_roads_clipped) %>%
 # Remove intermediate objects
 rm(edge_roads, edge_roads_clipped, edge_roads_clipped_list, interior_roads, roads_gridded)
 
-# Summaries ---------------------------------------------------------------
+## Save roads_clipped sf object to RDS & write out as geopackage format 
+## for use in other software
+saveRDS(roads_clipped, file = "tmp/roads_clipped_sf.rds")
+write_sf(roads_clipped, "out/data/roads_clipped.gpkg")
+
+# Tabular Summaries --------------------------------------------------------
 
 ## Sum of road segment lengths
 total_length_roads <- units::set_units(sum(roads_clipped$rd_len), km) %>% 
