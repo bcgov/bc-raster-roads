@@ -10,9 +10,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-library(sf) # spatial object
-library(dplyr) # data munging
-library(readr) # load data
+# library(sf) # spatial object
+# library(dplyr) # data munging
+# library(readr) # load data
 library(ggplot2) # plotting, dev version from GitHub for geom_sf
 library(forcats) # reorder factors
 library(bcmaps) # bc_bound()
@@ -20,17 +20,19 @@ library(RColorBrewer) # colour palette
 library(envreportutils) # theme_soe()
 library(patchwork) # multiplot
 library(R.utils) # capitalize
-library(foreach)
-library(doMC)
+library(foreach) # parallel processing tiles
+library(doMC) # parallel processing tiles
 
+
+source("header.R") # Source the common header file that loads packages and sets directories etc.
 source("R/functions.R") # make_tiles() function
 
-## Ensure you have run 01_load.R before you run this
+## Ensure you have run 01_load.R before you run this script
+
 ## Load data files from local folders
 roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
 road_types <- read_csv("data/TRANSPORT_LINE_TYPE_CODE.csv")
 road_surfaces <- read_csv("data/TRANSPORT_LINE_SURFACE_CODE.csv")
-
 
 # clip to bc boundary -----------------------------------------------------
 
@@ -113,32 +115,38 @@ soe_roads <- roads_clipped %>%
 
 ## Save soe_roads sf object to RDS & write out 
 saveRDS(soe_roads, file = "tmp/soe_roads_sf.rds")
-write_sf(soe_roads, "out/soe_roads.gpkg")
+write_sf(soe_roads, "out/data/soe_roads.gpkg")
+
+
+## Summarize road lengths by type, collapsing types into 3 broad categories (paved, gravel, unknown)
+## These categories were adapted the Forest Practices Board report Special Report #49
+## https://www.bcfpb.ca/wp-content/uploads/2017/05/SR49-Access-Management.pdf
 
 soe_roads_summary <-  soe_roads %>% 
   st_set_geometry(NULL) %>%
   group_by(TRANSPORT_LINE_SURFACE_CODE) %>%
-  summarise(total_length = as.numeric(units::set_units(sum(rd_len), km))) %>%
   left_join(road_surfaces, by = "TRANSPORT_LINE_SURFACE_CODE") %>%
-  select(TRANSPORT_LINE_SURFACE_CODE, DESCRIPTION, total_length) %>% 
-  mutate(DESCRIPTION = R.utils::capitalize(DESCRIPTION))
+  mutate(DESCRIPTION = recode(DESCRIPTION, loose = "gravel",
+                              rough = "gravel",
+                              seasonal = "gravel"), 
+         DESCRIPTION = R.utils::capitalize(DESCRIPTION)) %>% 
+  group_by(DESCRIPTION) %>% 
+  summarise(total_length = as.numeric(units::set_units(sum(rd_len), km)))
 soe_roads_summary
+
 
 # Plotting ----------------------------------------------------------------
 
 ## Bar chart of roads by surface type
 ## creating a colour brewer palette from http://colorbrewer2.org/
 # colrs <- brewer.pal(6, "Paired")
-colrs <- c("D" = "#e31a1c",
-           "L" = "#b2df8a",
-           "P" = "grey30",
-           "R" = "#33a02c",
-           "S" = "#fdbf6f",
-           "U" = "#ffff99")
+colrs <- c("Gravel" = "#b2df8a",
+           "Paved" = "grey30",
+           "Unknown" = "#fdbf6f")
 
 soe_roads_sum_chart <- soe_roads_summary %>% 
   ggplot(aes(fct_reorder(DESCRIPTION, total_length), total_length/1000)) +
-  geom_col(aes(fill = TRANSPORT_LINE_SURFACE_CODE)) +
+  geom_col(aes(fill = DESCRIPTION), alpha = 0.8) +
   scale_fill_manual(values = colrs, labels = unique(soe_roads_summary$DESCRIPTION),
                     guide = FALSE) +
     theme_soe() +
@@ -153,8 +161,25 @@ soe_roads_sum_chart <- soe_roads_summary %>%
           plot.margin = unit(c(10, 5, 15, 5), "mm"))
 plot(soe_roads_sum_chart)
 
-## Plot of BC MAP with soe_roads
-## Plotting raods is SLOW
+
+library(magick) # join bar chart to map png
+
+## BC DRA Combo image
+dra_map_file <- "out/bc_dra.png" # created in QGIS
+dra_chart_file <- "out/soe_roads_by_surface.png"
+
+(map <- image_read(dra_map_file))
+(map <- image_resize(map, "1000x1000"))
+(bar <- image_read(dra_chart_file))
+images <- c(bar, map)
+dra_sum <- image_append(images, stack = FALSE)
+
+image_write(dra_sum,
+            path = "~/dev/bc-road-analysis/out/bc_dra_soe_summary_22Feb18.png",
+            format = "png")
+
+## Plot of soe_roads map
+## Plotting soe_roads is SLOWWWWW
 
 # plot(st_geometry(soe_roads))
 # plot(soe_roads[, "TRANSPORT_LINE_SURFACE_CODE"])
@@ -168,12 +193,12 @@ plot(soe_roads_sum_chart)
 #   filter(TRANSPORT_LINE_SURFACE_CODE == "S")
 
 ## ggplot2 dev version
-soe_roads_map <- ggplot() +
-  geom_sf(data = bc_bound(), fill = NA, size = 0.2) +
-    geom_sf(data = soe_roads, aes(colour = TRANSPORT_LINE_SURFACE_CODE), size = 0.1) +
-  coord_sf(datum = NA) +
-  scale_colour_manual(values = colrs, guide = FALSE) +
-    theme_minimal()
+# soe_roads_map <- ggplot() +
+#   geom_sf(data = bc_bound(), fill = NA, size = 0.2) +
+#     geom_sf(data = soe_roads, aes(colour = TRANSPORT_LINE_SURFACE_CODE), size = 0.1) +
+#   coord_sf(datum = NA) +
+#   scale_colour_manual(values = colrs, guide = FALSE) +
+#     theme_minimal()
 # plot(soe_roads_map)
 
 ## data = soe_roads[1:1000,] ## using small subset for plot iteration
