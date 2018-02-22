@@ -12,7 +12,6 @@
 
 # Source the common header file that loads packages and sets directories etc.
 source("header.R")
-source("R/functions.R")
 
 library(raster)
 library(spex) # fast conversion of raster to polygons
@@ -40,7 +39,9 @@ ProvBB <- st_bbox(ProvRast)
 #Number of tile rows, number of columns will be the same
 nTileRows <- 10
 
-prov_grid <- make_tiles(ProvBB, nTileRows)
+prov_grid <- st_make_grid(st_as_sfc(ProvBB), n = rep(nTileRows, 2))
+prov_grid <- st_sf(tile_id = seq_along(prov_grid), 
+                   geometry = prov_grid, crs = 3005)
 
 # Plot grid and Prov bounding box just to check
 plot(prov_grid)

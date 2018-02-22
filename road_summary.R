@@ -23,8 +23,6 @@ library(R.utils) # capitalize
 library(foreach)
 library(doMC)
 
-source("R/functions.R") # make_tiles() function
-
 ## Ensure you have run 01_load.R before you run this
 ## Load data files from local folders
 roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
@@ -36,11 +34,9 @@ road_surfaces <- read_csv("data/TRANSPORT_LINE_SURFACE_CODE.csv")
 
 bc <- bc_bound_hres()
 
-## bounding box for B.C.
-ProvBB <- st_bbox(bc)
-
-# Make a grid of tiles to chunk out processing into smaller pieces
-prov_grid <- make_tiles(ProvBB, 10)
+# Make a 10x10 grid of tiles to chunk out processing into smaller pieces
+prov_grid <- st_make_grid(bc, n = c(10, 10))
+prov_grid <- st_sf(tile_id = seq_along(prov_grid), geometry = prov_grid)
 
 # Chop the bc boundary up into tiles using prov_grid
 bc_gridded <- st_intersection(st_cast(bc, "POLYGON"), prov_grid) %>% 
