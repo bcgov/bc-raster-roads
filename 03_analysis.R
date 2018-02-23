@@ -93,6 +93,7 @@ roads_gridded <- st_intersection(roads_sf, prov_grid)
 registerDoMC(3)
 
 ptm <- proc.time()
+#i<-1
 foreach(i = prov_grid$id) %dopar% {
   Pcc <- raster::extent(prov_grid[prov_grid$id == i, ])
   DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
@@ -119,8 +120,8 @@ foreach(i = prov_grid$id) %dopar% {
   } else {
     roadlengthT <- DefaultRaster
   }
-  writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
-  print(paste(tileOutDir, "rdTile_", i, ".tif", sep = ""))
+  writeRaster(roadlengthT, filename = paste(tileOutDir, "/rdTile_", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
+  print(paste(tileOutDir, "/rdTile_", i, ".tif", sep = ""))
   rm(Pcc, DefaultRaster, TilePoly, rsp, rp1, x, roadlengthT)
   gc()
 }
