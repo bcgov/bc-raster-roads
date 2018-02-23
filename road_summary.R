@@ -93,7 +93,7 @@ length_by_type <- roads_clipped %>%
   group_by(TRANSPORT_LINE_TYPE_CODE) %>%
   summarise(total_length = as.numeric(units::set_units(sum(rd_len), km))) %>%
   left_join(road_types, by = "TRANSPORT_LINE_TYPE_CODE") %>%
-  select(TRANSPORT_LINE_TYPE_CODE, DESCRIPTION, total_length)
+  dplyr::select(TRANSPORT_LINE_TYPE_CODE, DESCRIPTION, total_length)
 
 ## Sum of ALL road segment lengths by TRANSPORT_LINE_SURFACE_CODE
 length_by_surface <- roads_clipped %>%
@@ -101,7 +101,7 @@ length_by_surface <- roads_clipped %>%
   group_by(TRANSPORT_LINE_SURFACE_CODE) %>%
   summarise(total_length = as.numeric(units::set_units(sum(rd_len), km))) %>%
   left_join(road_surfaces, by = "TRANSPORT_LINE_SURFACE_CODE") %>%
-  select(TRANSPORT_LINE_SURFACE_CODE, DESCRIPTION, total_length)
+  dplyr::select(TRANSPORT_LINE_SURFACE_CODE, DESCRIPTION, total_length)
 
 ## Write out summary CSV file
 write_csv(length_by_type, "out/roads_by_type_summary.csv")
