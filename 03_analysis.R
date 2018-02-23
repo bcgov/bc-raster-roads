@@ -57,14 +57,13 @@ roads_gridded <- st_intersection(roads_sf, prov_grid)
 # it will fill up memory and grind to a halt.
 registerDoMC(3)
 
-ptm <- proc.time()
-foreach(i = prov_grid$id) %dopar% {
-  Pcc <- raster::extent(prov_grid[prov_grid$id == i, ])
+foreach(i = prov_grid$tile_id) %dopar% {
+  Pcc <- raster::extent(prov_grid[prov_grid$tile_id == i, ])
   DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
                           resolution = c(100, 100), vals = 0, ext = Pcc)
   
   ## Use the roads layer that has already been chopped into tiles
-  TilePoly <- roads_gridded[roads_gridded$id == i, ]
+  TilePoly <- roads_gridded[roads_gridded$tile_id == i, ]
   
   if (nrow(TilePoly) > 0) {
     
@@ -81,14 +80,15 @@ foreach(i = prov_grid$id) %dopar% {
     roadlengthT[as.integer(names(x))] <- x
     roadlengthT[is.na(roadlengthT)] <- 0
     
+    rm(rsp, rp1, x)
   } else {
     roadlengthT <- DefaultRaster
   }
-  writeRaster(roadlengthT, filename = paste(tileOutDir, "rdTile_", i, ".tif", sep = ""), format = "GTiff", overwrite = TRUE)
-  print(paste(tileOutDir, "rdTile_", i, ".tif", sep = ""))
-  rm(Pcc, DefaultRaster, TilePoly, rsp, rp1, x, roadlengthT)
+  fname <- file.path(tileOutDir, paste0("rdTile_", i, ".tif"))
+  writeRaster(roadlengthT, filename = fname, format = "GTiff", overwrite = TRUE)
+  message(fname)
+  rm(Pcc, DefaultRaster, TilePoly, roadlengthT, fname)
   gc()
 }
-proc.time() - ptm
 
 #Memory functions - object.size(roadsIN), gc(), rm()
