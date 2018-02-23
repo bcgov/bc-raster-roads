@@ -23,6 +23,9 @@ library(R.utils) # capitalize
 library(foreach) # parallel processing tiles
 library(doMC) # parallel processing tiles
 
+# Source the common header file that loads packages and sets directories etc.
+source("header.R")
+
 ## Ensure you have run 01_load.R before you run this script
 
 ## Load data files from local folders
@@ -74,7 +77,7 @@ rm(edge_roads, edge_roads_clipped, edge_roads_clipped_list, interior_roads, road
 
 ## Save roads_clipped sf object to RDS & write out as geopackage format 
 ## for use in other software
-saveRDS(roads_clipped, file = "tmp/roads_clipped_sf.rds")
+saveRDS(roads_clipped, file = "tmp/roads_clipped.rds")
 write_sf(roads_clipped, "out/data/roads_clipped.gpkg")
 
 # Tabular Summaries --------------------------------------------------------
@@ -113,7 +116,7 @@ soe_roads <- roads_clipped %>%
   filter(!TRANSPORT_LINE_SURFACE_CODE %in% exclude_surface)
 
 ## Save soe_roads sf object to RDS & write out 
-saveRDS(soe_roads, file = "tmp/soe_roads_sf.rds")
+saveRDS(soe_roads, file = "tmp/soe_roads.rds")
 write_sf(soe_roads, "out/data/soe_roads.gpkg")
 
 
@@ -161,9 +164,14 @@ soe_roads_sum_chart <- soe_roads_summary %>%
 plot(soe_roads_sum_chart)
 
 
+## Saving plot
+png_retina(filename = "./out/soe_roads_by_surface.png", width = 500, height = 500, units = "px", type = "cairo-png")
+plot(soe_roads_sum_chart)
+dev.off()
+
+## SoE Roads Map & Bar Chart combined image
 library(magick) # join bar chart to map png
 
-## BC DRA Combo image
 dra_map_file <- "out/bc_dra.png" # created in QGIS
 dra_chart_file <- "out/soe_roads_by_surface.png"
 
@@ -206,10 +214,6 @@ image_write(dra_sum,
 # system.time(plot(soe_roads_map))
 
 ## Saving plots
-png_retina(filename = "./out/soe_roads_by_surface.png", width = 500, height = 500, units = "px", type = "cairo-png")
-plot(soe_roads_sum_chart)
-dev.off()
-
 # png_retina(filename = "./out/soe_roads_map.png", width = 500, height = 500, units = "px", type = "cairo-png")
 # plot(soe_roads_map)
 # dev.off()
