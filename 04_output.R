@@ -26,12 +26,12 @@ Tiles<- list.files(path=paste(tileOutDir,sep=''), pattern='rdTile_')
 template<-ProvRast
 writeRaster(template, file=paste(tileOutDir,"RoadDensR.tif",sep=''), format="GTiff",overwrite=TRUE)
 #Merge all raster tiles into one big raster.
-RoadDensR<-mosaic_rasters(gdalfile=paste(tileOutDir,Tiles,sep=''),
-                          dst_dataset=paste(tileOutDir,"RoadDensR.tif",sep=''),
+RoadDensR<-mosaic_rasters(gdalfile=paste(tileOutDir,"/",Tiles,sep=''),
+                          dst_dataset=paste(tileOutDir,"/RoadDensR.tif",sep=''),
                           of="GTiff",
                           output_Raster=TRUE,
                           output.vrt=TRUE)
-gdalinfo(paste(tileOutDir,"RoadDensR.tif",sep=''))
+gdalinfo(paste(tileOutDir,"/RoadDensR.tif",sep=''))
 #Plot to test
 plot(RoadDensR)
 #lines(roadsIN,col='red')
