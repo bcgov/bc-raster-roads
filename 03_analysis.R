@@ -57,6 +57,7 @@ roads_gridded <- st_intersection(roads_sf, prov_grid)
 # it will fill up memory and grind to a halt.
 registerDoMC(3)
 
+ptm <- proc.time()
 foreach(i = prov_grid$tile_id) %dopar% {
   Pcc <- raster::extent(prov_grid[prov_grid$tile_id == i, ])
   DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
