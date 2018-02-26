@@ -31,7 +31,6 @@ roads_sf <- roads_sf %>%
          !TRANSPORT_LINE_SURFACE_CODE %in% NoLongerRoads)
 
 # Save as RDS for quicker access later.
-dir.create("tmp")
 saveRDS(roads_sf, file = "tmp/DRA_roads_sf_clean.rds")
 # Also save as geopackage format for use in other software
-write_sf(roads_sf, "out/roads_clean.gpkg")
+write_sf(roads_sf, "out/data/roads_clean.gpkg")

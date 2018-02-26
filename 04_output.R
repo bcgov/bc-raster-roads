@@ -20,18 +20,18 @@ require(raster)
 #Code snipet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
 
 #Build list of all raster files you want to join (in your current working directory).
-Tiles<- list.files(path=paste(tileOutDir,sep=''), pattern='rdTile_')
+Tiles<- list.files(path=tileOutDir, pattern='rdTile_')
 
 #Make a template raster file to build onto
 template<-ProvRast
-writeRaster(template, file=paste(tileOutDir,"RoadDensR.tif",sep=''), format="GTiff",overwrite=TRUE)
+writeRaster(template, file=file.path(tileOutDir,"RoadDensR.tif"), format="GTiff",overwrite=TRUE)
 #Merge all raster tiles into one big raster.
-RoadDensR<-mosaic_rasters(gdalfile=paste(tileOutDir,"/",Tiles,sep=''),
-                          dst_dataset=paste(tileOutDir,"/RoadDensR.tif",sep=''),
+RoadDensR<-mosaic_rasters(gdalfile=file.path(tileOutDir,Tiles),
+                          dst_dataset=file.path(tileOutDir,"RoadDensR.tif"),
                           of="GTiff",
                           output_Raster=TRUE,
                           output.vrt=TRUE)
-gdalinfo(paste(tileOutDir,"/RoadDensR.tif",sep=''))
+gdalinfo(file.path(tileOutDir,"RoadDensR.tif"))
 #Plot to test
 plot(RoadDensR)
 #lines(roadsIN,col='red')
