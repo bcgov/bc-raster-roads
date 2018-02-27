@@ -23,8 +23,9 @@ library(R.utils) # capitalize
 library(foreach) # parallel processing tiles
 library(doMC) # parallel processing tiles
 
-# Source the common header file that loads packages and sets directories etc.
-source("header.R")
+# Create output folders (if necessary)
+if (!exists("out")) dir.create("out", showWarnings = FALSE)
+if (!exists("out/data")) dir.create("out/data", showWarnings = FALSE)
 
 ## Ensure you have run 01_load.R before you run this script
 
@@ -130,7 +131,8 @@ soe_roads_summary <-  soe_roads %>%
   left_join(road_surfaces, by = "TRANSPORT_LINE_SURFACE_CODE") %>%
   mutate(DESCRIPTION = recode(DESCRIPTION, loose = "gravel",
                               rough = "gravel",
-                              seasonal = "gravel"), 
+                              seasonal = "Unknown &\nSeasonal",
+                              unknown = "Unknown &\nSeasonal"),
          DESCRIPTION = R.utils::capitalize(DESCRIPTION)) %>% 
   group_by(DESCRIPTION) %>% 
   summarise(total_length = as.numeric(units::set_units(sum(rd_len), km)))
@@ -142,9 +144,9 @@ soe_roads_summary
 ## Bar chart of roads by surface type
 ## creating a colour brewer palette from http://colorbrewer2.org/
 # colrs <- brewer.pal(6, "Paired")
-colrs <- c("Gravel" = "#b2df8a",
-           "Paved" = "grey30",
-           "Unknown" = "#fdbf6f")
+colrs <- c("Gravel" = "#fdbf6f",
+           "Paved" = "grey10",
+           "Unknown &\nSeasonal" = "#cc4c02")
 
 soe_roads_sum_chart <- soe_roads_summary %>% 
   ggplot(aes(fct_reorder(DESCRIPTION, total_length), total_length/1000)) +
@@ -153,12 +155,13 @@ soe_roads_sum_chart <- soe_roads_summary %>%
                     guide = FALSE) +
     theme_soe() +
     coord_flip() +
-    labs(x = "", y = "Total Length (km * 1000)", title = "Total Length of Roads in B.C. by Road Surface Type",
-         subtitle = paste0("B.C. has ", total_length_roads, " of roads")) +
+    # labs(x = "", y = "Total Length (km * 1000)", title = "Total Length of Roads in B.C. by Road Surface Type",
+    #      subtitle = paste0("B.C. has ", total_length_roads, " of roads")) +
+  labs(x = "", y = "Total Length (km * 1000)") +
     scale_y_continuous(expand = c(0, 0)) +
     theme(panel.grid.major.y = element_blank(),
-          axis.text = element_text(size = 12),
-          axis.title = element_text(size = 14),
+          axis.text = element_text(size = 14),
+          axis.title = element_text(size = 16),
           plot.subtitle = element_text(size = 12),
           plot.margin = unit(c(10, 5, 15, 5), "mm"))
 plot(soe_roads_sum_chart)
@@ -166,6 +169,10 @@ plot(soe_roads_sum_chart)
 
 ## Saving plot
 png_retina(filename = "./out/soe_roads_by_surface.png", width = 500, height = 500, units = "px", type = "cairo-png")
+plot(soe_roads_sum_chart)
+dev.off()
+
+svg_px(file = "./out/soe_roads_by_surface.svg", width = 500, height = 500)
 plot(soe_roads_sum_chart)
 dev.off()
 
@@ -189,12 +196,10 @@ image_write(dra_sum,
 ## Plotting soe_roads is SLOWWWWW
 
 # plot(st_geometry(soe_roads))
-# plot(soe_roads[, "TRANSPORT_LINE_SURFACE_CODE"])
 
 # soe_roads %>% 
 #   select(TRANSPORT_LINE_SURFACE_CODE) %>% 
 #   plot()
-# plot(st_geometry(bc), add = TRUE)
 
 # soe_roads_testing <- soe_roads %>%
 #   filter(TRANSPORT_LINE_SURFACE_CODE == "S")
@@ -213,7 +218,7 @@ image_write(dra_sum,
 # X11(type = "cairo")
 # system.time(plot(soe_roads_map))
 
-## Saving plots
+## Saving map plots
 # png_retina(filename = "./out/soe_roads_map.png", width = 500, height = 500, units = "px", type = "cairo-png")
 # plot(soe_roads_map)
 # dev.off()
