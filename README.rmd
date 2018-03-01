@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r, echo=FALSE, results='asis'}
-bcgovr::devex_badge("Exploration")
+bcgovr::devex_badge("Delivery")
 ```
 
 # Road Density Analysis for B.C.
