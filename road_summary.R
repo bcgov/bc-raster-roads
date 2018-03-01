@@ -227,3 +227,6 @@ image_write(dra_sum,
 # soe_roads_sum_chart + soe_roads_map + plot_layout(ncol = 2, widths = c(.6, 1.2))
 # dev.off()
 
+ecorgns <- st_intersection(ecoregions(), bc_bound_hres())
+soe_roads_ecorgns <- st_intersection(soe_roads, ecorgns)
+saveRDS(soe_roads_ecorgns, file = "tmp/soe_roads_ecorgns.rds")
