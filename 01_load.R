@@ -30,7 +30,7 @@ roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE") %>%
   mutate(rd_len = st_length(.))
 
 # Write metadata from gdb to csv files (need ogr2ogr on the command line)
-lapply(fc_list[grepl("CODE$", fc_list)], function(l) {
+lapply(fc_list$name[grepl("CODE$", fc_list$name)], function(l) {
   system(paste0("ogr2ogr -f CSV data/", l, ".csv ", Rd_gdb, " ", l))
 })
 
