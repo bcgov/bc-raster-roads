@@ -40,3 +40,5 @@ plot(RoadDensR)
 rast_sum_len <- cellStats(RoadDensR, "sum")
 as.numeric(sum(roads_sf$rd_len)) - rast_sum_len
 # ~ 250 km difference - pretty good!
+
+file.copy("out/data/tile/RoadDensR.tif", "../roadless-lands-indicator/data/")
