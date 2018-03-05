@@ -13,7 +13,7 @@
 # Source the common header file that loads packages and sets directories etc.
 source("header.R")
 
-roads_sf <- readRDS("tmp_22Feb2018/DRA_roads_sf_clean.rds")
+roads_sf <- readRDS("tmp/DRA_roads_sf.rds")
 
 # Make table of all possible combinations to determine how to classify roads
 # into use types, capture all cases and if contribute to non-intact land
@@ -22,7 +22,7 @@ Rd_Tbl <- st_set_geometry(roads_sf, NULL) %>%
 write_csv(Rd_Tbl, "out/Rd_x_tbl.csv")
 
 # Not roads - TYPE = Ferry routes, non motorized Trails, proposed, pedestrian mall
-notRoads <- c("F", "FP", "FR", "RP", "TD", "RWA", "RPM") 
+notRoads <- c("F", "FP", "FR", "RP", "TD", "RWA", "RPM", "T") 
 # No longer roads - SURFACE_TYPE = decomissioned, overgrown, and boat
 NoLongerRoads <- c("D", "O", "B")
 

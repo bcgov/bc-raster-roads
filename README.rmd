@@ -15,16 +15,20 @@ knitr::opts_chunk$set(
 ```
 
 ```{r, echo=FALSE, results='asis'}
-bcgovr::devex_badge("Exploration")
+bcgovr::devex_badge("Delivery")
 ```
 
 # Road Density Analysis for B.C.
-
+This analysis generates a raster layer with the total length of roads for each hectare for British Columbia. 
 
 ### Data
+
 This analysis uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e)) and distributed under the [Access Only - B.C. Crown Copyright ](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
 
 The Digital Road Atlas is a [single, authoritative source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
+
+This analysis excludes some surface and road types in the [Digital Road Atlas (DRA) ](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from ```TRANSPORT_LINE_SURFACE_CODE``` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from ```TRANSPORT_LINE_TYPE_CODE```.
+
 
 ### Usage
 
@@ -35,14 +39,7 @@ There are four core scripts that are required for the road density analysis, the
 - 03_analysis.R
 - 04_output.R
 
-Most packages used in the analysis can be installed from CRAN using `install.packages()`, but you will need to install [`envreportutils`](https://github.com/bcgov/envreportutils) using `remotes`:
-
-```r
-install.packages("remotes") # if you don't already have it installed
-
-library(remotes)
-install_github("bcgov/envreportutils")
-```
+The packages used in the analysis can be installed from CRAN using `install.packages()`.
 
 ### Project Status
 This project is under active development.
