@@ -1,10 +1,10 @@
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 <a id="devex-badge" rel="Delivery" href="https://github.com/BCDevExchange/assets/blob/master/README.md"><img alt="In production, but maybe in Alpha or Beta. Intended to persist and be supported." style="border-width:0" src="https://assets.bcdevexchange.org/images/badges/delivery.svg" title="In production, but maybe in Alpha or Beta. Intended to persist and be supported." /></a>
 
-Road Density Analysis for B.C.
-==============================
+Road Density for B.C.
+=====================
 
-This analysis generates a raster layer with the total length of roads for each hectare for British Columbia.
+This analysis generates a raster spatial layer with the total length of roads per hectare for British Columbia.
 
 ### Data
 
@@ -23,7 +23,7 @@ There are four core scripts that are required for the road density analysis, the
 -   03\_analysis.R
 -   04\_output.R
 
-The packages used in the analysis can be installed from CRAN using `install.packages()`.
+The packages used in the analysis can be installed from CRAN using `install.packages()`. An installation of [GDAL](http://www.gdal.org/) is required for the `ogr2ogr` command.
 
 ### Project Status
 
