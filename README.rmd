@@ -18,8 +18,8 @@ knitr::opts_chunk$set(
 bcgovr::devex_badge("Delivery")
 ```
 
-# Road Density Analysis for B.C.
-This analysis generates a raster layer with the total length of roads for each hectare for British Columbia. 
+# B.C. Roads in Raster Format
+This analysis generates a raster spatial layer with the total length of roads per hectare for British Columbia. 
 
 ### Data
 
@@ -39,7 +39,7 @@ There are four core scripts that are required for the road density analysis, the
 - 03_analysis.R
 - 04_output.R
 
-The packages used in the analysis can be installed from CRAN using `install.packages()`.
+The packages used in the analysis can be installed from CRAN using `install.packages()`. An installation of [GDAL](http://www.gdal.org/) is required for the `ogr2ogr` command.
 
 ### Project Status
 This project is under active development.
