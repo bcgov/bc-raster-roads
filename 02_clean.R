@@ -21,8 +21,8 @@ Rd_Tbl <- st_set_geometry(roads_sf, NULL) %>%
   count(TRANSPORT_LINE_SURFACE_CODE, TRANSPORT_LINE_TYPE_CODE)
 write_csv(Rd_Tbl, "out/Rd_x_tbl.csv")
 
-# Not roads - TYPE = Ferry routes, non motorized Trails, proposed, pedestrian mall
-notRoads <- c("F", "FP", "FR", "RP", "TD", "RWA", "RPM", "T") 
+# Not roads - TYPE = Ferry routes, some non motorized Trails, proposed, pedestrian mall
+notRoads <- c("F", "FP", "FR", "RP", "TD", "RWA", "RPM") ## still includes trails "T" 
 # No longer roads - SURFACE_TYPE = decomissioned, overgrown, and boat
 NoLongerRoads <- c("D", "O", "B")
 
