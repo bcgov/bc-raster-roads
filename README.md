@@ -23,7 +23,7 @@ There are four core scripts that are required for the road density analysis, the
 -   03\_analysis.R
 -   04\_output.R
 
-The packages used in the analysis can be installed from CRAN using `install.packages()`. An installation of [GDAL](http://www.gdal.org/) is required for the `ogr2ogr` command.
+The packages used in the analysis can be installed from CRAN using `install.packages()`.
 
 ### Project Status
 
@@ -31,7 +31,7 @@ This project is under active development.
 
 ### Getting Help or Reporting an Issue
 
-To report bugs/issues/feature requests, please file an [issue](https://github.com/bcgov/bc-road-analysis/issues/).
+To report bugs/issues/feature requests, please file an [issue](https://github.com/bcgov/bc-raster-roads/issues/).
 
 ### How to Contribute
 
