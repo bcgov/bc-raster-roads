@@ -4,26 +4,45 @@
 B.C. Roads in Raster Format
 ===========================
 
-This analysis generates a raster spatial layer with the total length of roads per hectare for British Columbia.
+This analysis generates a raster spatial layer with the total length of
+roads per hectare for British Columbia.
 
 ### Data
 
-This analysis uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e)) and distributed under the [Access Only - B.C. Crown Copyright](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
+This analysis uses the British Columbia [Digital Road Atlas (DRA)
+available from the B.C. Data
+Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e))
+and distributed under the [Access Only - B.C. Crown
+Copyright](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA)
+licence.
 
-The Digital Road Atlas is a [single, authoritative source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
+The Digital Road Atlas is a [single, authoritative source of road data
+for the Province of
+B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714)
+Metadata details for the Digital Road Atlas (DRA) are available in PDF
+format from the [B.C. Data
+Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
 
-This analysis excludes some surface and road types in the [Digital Road Atlas (DRA)](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from `TRANSPORT_LINE_SURFACE_CODE` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from `TRANSPORT_LINE_TYPE_CODE`.
+This analysis excludes some surface and road types in the [Digital Road
+Atlas
+(DRA)](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
+Boat (B), overgrown (O) & decomissioned (D) roads are excluded from
+`TRANSPORT_LINE_SURFACE_CODE` and ferry routes (F, FP, FR, RWA),
+non-motorized trails (T, TD), road proposed (RP), and road pedestrian
+mall (RPM) are excluded from `TRANSPORT_LINE_TYPE_CODE`.
 
 ### Usage
 
-There are four core scripts that are required for the road density analysis, they need to be run in order:
+There are four core scripts that are required for the road density
+analysis, they need to be run in order:
 
 -   01\_load.R
 -   02\_clean.R
 -   03\_analysis.R
 -   04\_output.R
 
-The packages used in the analysis can be installed from CRAN using `install.packages()`. An installation of [GDAL](http://www.gdal.org/) is required for the `ogr2ogr` command.
+The packages used in the analysis can be installed from CRAN using
+`install.packages()`.
 
 ### Project Status
 
@@ -31,13 +50,17 @@ This project is under active development.
 
 ### Getting Help or Reporting an Issue
 
-To report bugs/issues/feature requests, please file an [issue](https://github.com/bcgov/bc-road-analysis/issues/).
+To report bugs/issues/feature requests, please file an
+[issue](https://github.com/bcgov/bc-road-analysis/issues/).
 
 ### How to Contribute
 
-If you would like to contribute, please see our [CONTRIBUTING](CONTRIBUTING.md) guidelines.
+If you would like to contribute, please see our
+[CONTRIBUTING](CONTRIBUTING.md) guidelines.
 
-Please note that this project is released with a [Contributor Code of Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree to abide by its terms.
+Please note that this project is released with a [Contributor Code of
+Conduct](CODE_OF_CONDUCT.md). By participating in this project you agree
+to abide by its terms.
 
 ### License
 
@@ -55,4 +78,9 @@ Please note that this project is released with a [Contributor Code of Conduct](C
     See the License for the specific language governing permissions and
     limitations under the License.
 
-This repository is maintained by [ENVEcosystems](https://github.com/orgs/bcgov/teams/envecosystems/members) and [Environmental Reporting BC](http://www2.gov.bc.ca/gov/content?id=FF80E0B985F245CEA62808414D78C41B). Click [here](https://github.com/bcgov/EnvReportBC-RepoList) for a complete list of Environmental Reporting BC repositories on GitHub.
+This repository is maintained by
+[ENVEcosystems](https://github.com/orgs/bcgov/teams/envecosystems/members)
+and [Environmental Reporting
+BC](http://www2.gov.bc.ca/gov/content?id=FF80E0B985F245CEA62808414D78C41B).
+Click [here](https://github.com/bcgov/EnvReportBC-RepoList) for a
+complete list of Environmental Reporting BC repositories on GitHub.

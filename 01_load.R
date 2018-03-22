@@ -29,9 +29,11 @@ fc_list <- st_layers(Rd_gdb)
 roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE") %>% 
   mutate(rd_len = st_length(.))
 
-# Write metadata from gdb to csv files (need ogr2ogr on the command line)
+# Write metadata from gdb to csv files
+# (sf >= 0.6-1 supports reading non-spatial tables))
 lapply(fc_list$name[grepl("CODE$", fc_list$name)], function(l) {
-  system(paste0("ogr2ogr -f CSV data/", l, ".csv ", Rd_gdb, " ", l))
+  metadata <- st_read(Rd_gdb, layer = l, stringsAsFactors = FALSE)
+  write_csv(metadata, path = file.path("data", paste0(l, ".csv")))
 })
 
 # Determine the FC extent, projection, and attribute information
