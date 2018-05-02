@@ -25,7 +25,7 @@ This analysis generates a raster spatial layer with the total length of roads pe
 
 This analysis uses the British Columbia [Digital Road Atlas (DRA) available from the B.C. Data Catalogue]((https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e)) and distributed under the [Access Only - B.C. Crown Copyright ](https://www2.gov.bc.ca/gov/content?id=1AAACC9C65754E4D89A118B875E0FBDA) licence.
 
-The Digital Road Atlas is a [single, authoritative source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
+The Digital Road Atlas is the [best available single source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
 
 This analysis _excludes_ some surface and road types in the [Digital Road Atlas (DRA) ](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from ```TRANSPORT_LINE_SURFACE_CODE``` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from ```TRANSPORT_LINE_TYPE_CODE```.
 
