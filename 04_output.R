@@ -17,7 +17,7 @@ require(gdalUtils)
 require(raster)
 
 #code to read rasters from a directory and mosaic - faster than merge or mosaic
-#Code snipet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
+#Code snippet from: https://stackoverflow.com/questions/15876591/merging-multiple-rasters-in-r
 
 #Build list of all raster files you want to join (in your current working directory).
 Tiles<- list.files(path=tileOutDir, pattern='rdTile_')
@@ -40,4 +40,4 @@ rast_sum_len <- cellStats(RoadDensR, "sum")
 as.numeric(sum(roads_sf$rd_len)) - rast_sum_len
 # ~ 250 km difference - pretty good!
 
-file.copy("out/data/tile/RoadDensR.tif", "../roadless-lands-indicator/data/", overwrite = TRUE)
+file.copy("out/data/tile/RoadDensR.tif", "../roadless-areas-indicator/data/", overwrite = TRUE)
