@@ -41,6 +41,8 @@ There are four core scripts that are required for the raster road density analys
 
 Or you can run all four scripts using run_all.R.
 
+**Note about running time**: This is a large dataset and it takes 7-12 hours to complete.
+
 The packages used in the analysis can be installed from CRAN using `install.packages()`.
 
 ### Getting Help or Reporting an Issue
