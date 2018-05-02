@@ -1,3 +1,4 @@
+
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 <a id="devex-badge" rel="Delivery" href="https://github.com/BCDevExchange/assets/blob/master/README.md"><img alt="In production, but maybe in Alpha or Beta. Intended to persist and be supported." style="border-width:0" src="https://assets.bcdevexchange.org/images/badges/delivery.svg" title="In production, but maybe in Alpha or Beta. Intended to persist and be supported." /></a>
 
@@ -12,22 +13,20 @@ This analysis uses the British Columbia [Digital Road Atlas (DRA) available from
 
 The Digital Road Atlas is a [single, authoritative source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
 
-This analysis excludes some surface and road types in the [Digital Road Atlas (DRA)](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from `TRANSPORT_LINE_SURFACE_CODE` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from `TRANSPORT_LINE_TYPE_CODE`.
+This analysis *excludes* some surface and road types in the [Digital Road Atlas (DRA)](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from `TRANSPORT_LINE_SURFACE_CODE` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from `TRANSPORT_LINE_TYPE_CODE`.
 
 ### Usage
 
-There are four core scripts that are required for the road density analysis, they need to be run in order:
+There are four core scripts that are required for the raster road density analysis, they need to be run in order:
 
 -   01\_load.R
 -   02\_clean.R
 -   03\_analysis.R
 -   04\_output.R
 
+Or you can run all four scripts using run\_all.R.
+
 The packages used in the analysis can be installed from CRAN using `install.packages()`.
-
-### Project Status
-
-This project is under active development.
 
 ### Getting Help or Reporting an Issue
 

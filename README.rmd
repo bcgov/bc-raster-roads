@@ -1,7 +1,7 @@
 ---
 output:
-  md_document:
-    variant: markdown_github
+  github_document:
+    html_preview: true
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
 ```
 
 ```{r, echo=FALSE, results='asis'}
-bcgovr::devex_badge("Delivery")
+bcgovr::insert_bcgov_devex_badge("Delivery")
 ```
 
 # B.C. Roads in Raster Format
@@ -27,22 +27,21 @@ This analysis uses the British Columbia [Digital Road Atlas (DRA) available from
 
 The Digital Road Atlas is a [single, authoritative source of road data for the Province of B.C.](https://www2.gov.bc.ca/gov/content?id=21FFEC94B0AD40818D2D2AF06D522714) Metadata details for the Digital Road Atlas (DRA) are available in PDF format from the [B.C. Data Catalogue](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e).
 
-This analysis excludes some surface and road types in the [Digital Road Atlas (DRA) ](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from ```TRANSPORT_LINE_SURFACE_CODE``` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from ```TRANSPORT_LINE_TYPE_CODE```.
+This analysis _excludes_ some surface and road types in the [Digital Road Atlas (DRA) ](https://catalogue.data.gov.bc.ca/dataset/bb060417-b6e6-4548-b837-f9060d94743e). Boat (B), overgrown (O) & decomissioned (D) roads are excluded from ```TRANSPORT_LINE_SURFACE_CODE``` and ferry routes (F, FP, FR, RWA), non-motorized trails (T, TD), road proposed (RP), and road pedestrian mall (RPM) are excluded from ```TRANSPORT_LINE_TYPE_CODE```.
 
 
 ### Usage
 
-There are four core scripts that are required for the road density analysis, they need to be run in order:
+There are four core scripts that are required for the raster road density analysis, they need to be run in order:
 
 - 01_load.R
 - 02_clean.R
 - 03_analysis.R
 - 04_output.R
 
-The packages used in the analysis can be installed from CRAN using `install.packages()`.
+Or you can run all four scripts using run_all.R.
 
-### Project Status
-This project is under active development.
+The packages used in the analysis can be installed from CRAN using `install.packages()`.
 
 ### Getting Help or Reporting an Issue
 
