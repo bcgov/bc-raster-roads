@@ -13,7 +13,6 @@
 # Source the common header file that loads packages and sets directories etc.
 source("header.R")
 
-library(raster)
 library(spex) # fast conversion of raster to polygons
 # For parallel processing tiles to rasters
 library(foreach)
@@ -58,8 +57,10 @@ roads_gridded <- st_intersection(roads_sf, prov_grid)
 registerDoMC(3)
 
 ptm <- proc.time()
+
 foreach(i = prov_grid$tile_id) %dopar% {
-  Pcc <- raster::extent(prov_grid[prov_grid$tile_id == i, ])
+#  foreach(i = prov_grid$tile_id) %dopar% {
+    Pcc <- raster::extent(prov_grid[prov_grid$tile_id == i, ])
   DefaultRaster <- raster(Pcc, crs = st_crs(roads_gridded)$proj4string, 
                           resolution = c(100, 100), vals = 0, ext = Pcc)
   

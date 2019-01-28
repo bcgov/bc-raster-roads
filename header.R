@@ -1,6 +1,7 @@
 library(sf)
 library(dplyr)
 library(readr)
+library(raster)
 
 TmpDir <- 'tmp'
 OutDir <- 'out'

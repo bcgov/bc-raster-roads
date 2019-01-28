@@ -13,23 +13,18 @@
 # Source the common header file that loads packages and sets directories etc.
 source("header.R")
 
-# Raw road file 
-# DRA from BCDC:
-# https://catalogue.data.gov.bc.ca/dataset/digital-road-atlas-dra-master-partially-attributed-roads/resource/a06a2e11-a0b1-41d4-b857-cb2770e34fb0
-RdsZip <- 'dra.gdb.zip'
-download.file("ftp://ftp.geobc.gov.bc.ca/sections/outgoing/bmgs/DRA_Public/dgtl_road_atlas.gdb.zip",
-              destfile = file.path(DataDir, RdsZip))
-unzip(file.path(DataDir, RdsZip), exdir = file.path(DataDir, "DRA"))
+# Raw CE road file downloaded from Provincial CE data directory - internal to government
+# access and place in data/CE_Roads/
 
 # List feature classes in the geodatabase
-Rd_gdb <- list.files(file.path(DataDir, "DRA"), pattern = ".gdb", full.names = TRUE)[1]
+Rd_gdb <- list.files(file.path(DataDir, "CE_Roads/2017"), pattern = ".gdb", full.names = TRUE)[1]
 fc_list <- st_layers(Rd_gdb)
 
 # Read as sf and calculate road lengths
-roads_sf <- read_sf(Rd_gdb, layer = "TRANSPORT_LINE") %>% 
+roads_sf <- read_sf(Rd_gdb, layer = "integrated_roads") %>% 
   mutate(rd_len = st_length(.))
 
-# Write metadata from gdb to csv files
+# Write metadata from gdb to csv files - none in this CE file
 # (sf >= 0.6-1 supports reading non-spatial tables))
 lapply(fc_list$name[grepl("CODE$", fc_list$name)], function(l) {
   metadata <- st_read(Rd_gdb, layer = l, stringsAsFactors = FALSE)
@@ -40,4 +35,5 @@ lapply(fc_list$name[grepl("CODE$", fc_list$name)], function(l) {
 summary(roads_sf)
 
 # Save as RDS for quicker access later
-saveRDS(roads_sf, file = "tmp/DRA_roads_sf.rds")
+saveRDS(roads_sf, file = "tmp/Integrated_roads_sf.rds")
+
