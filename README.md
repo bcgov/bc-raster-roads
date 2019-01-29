@@ -9,7 +9,7 @@ This analysis generates 2 raster spatial layers; 1) raster of the total length o
 
 ### Data
 
-This analysis uses the Province's Cumulative Effects consolidated roads - generated from the \[road integrator repo\] (<https://github.com/smnorris/roadintegrator>)
+This analysis uses the Province's Cumulative Effects consolidated roads - generated from the road integrator repo (<https://github.com/smnorris/roadintegrator>)
 
 The script uses a variety of sources (<https://github.com/smnorris/roadintegrator/blob/master/sources.csv>)
 
