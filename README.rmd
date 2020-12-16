@@ -14,9 +14,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r, echo=FALSE, results='asis'}
-bcgovr::insert_bcgov_devex_badge("Delivery")
-```
+[![img](https://img.shields.io/badge/Lifecycle-Stable-97ca00)](https://github.com/bcgov/repomountie/blob/master/doc/lifecycle-badges.md)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # B.C. Roads in Raster Format
